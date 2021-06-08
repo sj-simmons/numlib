@@ -1,11 +1,10 @@
-
 import math
 from typing import List, Tuple
 
-__author__ = 'Scott Simmons'
-__version__ = '0.1'
-__status__ = 'Development'
-__date__ = '5/1/21'
+__author__ = "Scott Simmons"
+__version__ = "0.1"
+__status__ = "Development"
+__date__ = "5/1/21"
 __copyright__ = """
   Copyright 2014-2021 Scott Simmons
 
@@ -21,32 +20,34 @@ __copyright__ = """
   See the License for the specific language governing permissions and
   limitations under the License.
 """
-__license__= 'Apache 2.0'
+__license__ = "Apache 2.0"
+
 
 def gcd(a: int, b: int) -> int:
-    """Return the gcd of a and b.
-
-    """
+    """Return the gcd of a and b."""
     if b == 0:
         return abs(a)
     return abs(b) if a % b == 0 else gcd(b, a % b)
 
-def xgcd(a: int, b: int) -> Tuple[int, int, int]:
-    """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = r*a + s*b.
 
-    """
-    s = [1, 0]; t = [0, 1]
+def xgcd(a: int, b: int) -> Tuple[int, int, int]:
+    """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = r*a + s*b."""
+    s = [1, 0]
+    t = [0, 1]
     while True:
         quot = -(a // b)
         a = a % b
-        s[0] += quot * s[1]; t[0] += quot * t[1]
+        s[0] += quot * s[1]
+        t[0] += quot * t[1]
         if a == 0:
             return (b, s[1], t[1])
         quot = -(b // a)
         b = b % a
-        s[1] += quot * s[0]; t[1] += quot * t[0]
+        s[1] += quot * s[0]
+        t[1] += quot * t[0]
         if b == 0:
             return (a, s[0], t[0])
+
 
 def sieve(n: int = 1000000) -> Tuple[int, ...]:
     """Return list of primes <= n.
@@ -56,12 +57,13 @@ def sieve(n: int = 1000000) -> Tuple[int, ...]:
     assert n >= 1
     primes = []
     sieve = [True] * (n + 1)
-    for p in range (2, n+1):
+    for p in range(2, n + 1):
         if sieve[p]:
             primes.append(p)
             for i in range(p * p, n + 1, p):
                 sieve[i] = False
     return tuple(primes)
+
 
 def isprime(n: int) -> int:
     """Return True/False according to whether n is very likely prime.
@@ -69,72 +71,79 @@ def isprime(n: int) -> int:
     Using a variety of pseudoprime tests.
     """
     assert n >= 1
-    if n in [2,3,5,7,11,13,17,19,23,29]:
+    if n in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]:
         return True
     return isprimeE(n, 2) and isprimeE(n, 3) and isprimeE(n, 5)
 
-def isprimeF(n: int, b: int) -> bool:
-    """Return True if n is a prime or a Fermat pseudoprime to base b; False, otherwise.
 
-    """
-    return pow(b, n-1, n) == 1
+def isprimeF(n: int, b: int) -> bool:
+    """Return True if n is a prime or a Fermat pseudoprime to base b; False, otherwise."""
+    return pow(b, n - 1, n) == 1
+
 
 def isprimeE(n: int, b: int) -> bool:
-    """Return True if n is a prime or an Euler pseudoprime to base b; False, otherwise.
-
-    """
-    if not isprimeF(n, b): return False
-    r = n-1
-    while r % 2 == 0: r //= 2
+    """Return True if n is a prime or an Euler pseudoprime to base b; False, otherwise."""
+    if not isprimeF(n, b):
+        return False
+    r = n - 1
+    while r % 2 == 0:
+        r //= 2
     c = pow(b, r, n)
-    if c == 1: return True
+    if c == 1:
+        return True
     while True:
-        if c == 1: return False
-        if c == n-1: return True
+        if c == 1:
+            return False
+        if c == n - 1:
+            return True
         c = pow(c, 2, n)
 
-def factor_(n: int) -> int:
-    """Return, with fair likelihood of success, a prime factor of n.
 
-    """
+def factor_(n: int) -> int:
+    """Return, with fair likelihood of success, a prime factor of n."""
     assert n > 1
-    if isprime(n): return n
-    for fact in [2,3,5,7,11,13,17,19,23,29]:
-        if n % fact == 0: return fact
+    if isprime(n):
+        return n
+    for fact in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]:
+        if n % fact == 0:
+            return fact
     return factorPR(n)  # Needs work - no guarantee that a prime factor will be returned
 
-def factor(n: int) -> List[int]:
-    """Return, with fair likelihood of success, a sorted tuple of the prime factors of n.
 
-    """
+def factor(n: int) -> List[int]:
+    """Return, with fair likelihood of success, a sorted tuple of the prime factors of n."""
     assert n > 1
     if isprime(n):
         return [n]
     fact = factor_(n)
-    assert fact != 1, "Unable to factor "+str(n)
+    assert fact != 1, "Unable to factor " + str(n)
     facts = factor(n // fact) + factor(fact)
     facts.sort()
     return facts
+
 
 def factorPR(n: int) -> int:
     """Return a non-trivial factor of n using the Pollard Rho method.
 
     Note: This method will occasionally fail.
     """
-    for slow in [2,3,4,6]:
-        numsteps = 2 * math.floor(math.sqrt(math.sqrt(n))); fast=slow; i=1
+    for slow in [2, 3, 4, 6]:
+        numsteps = 2 * math.floor(math.sqrt(math.sqrt(n)))
+        fast = slow
+        i = 1
         while i < numsteps:
-            slow = (slow*slow + 1) % n
+            slow = (slow * slow + 1) % n
             i = i + 1
-            fast = (fast*fast + 1) % n
-            fast = (fast*fast + 1) % n
-            g = gcd(fast-slow,n)
-            if (g != 1):
-                if (g == n):
+            fast = (fast * fast + 1) % n
+            fast = (fast * fast + 1) % n
+            g = gcd(fast - slow, n)
+            if g != 1:
+                if g == n:
                     break
                 else:
                     return g
     return 1
+
 
 def phi(n: int) -> int:
     """Return the number of positive integers less than and coprime to n.
@@ -142,7 +151,7 @@ def phi(n: int) -> int:
     This computes Euler's totient function. Group theoretically, phi(n) is the order of
     (Z/nZ)^*, the multiplicative group of units in ring, Z/nZ, of integers modulo n.
     """
-    assert n>1
+    assert n > 1
     factors = factor(n)
     factors.sort()
     phi_ = 1
@@ -154,4 +163,3 @@ def phi(n: int) -> int:
             phi_ *= fact - 1
             prevfact = fact
     return phi_
-
