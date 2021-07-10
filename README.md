@@ -2,11 +2,12 @@
 
 ### Contents
 * [Installation](#installation)
+* [Quick start](#quick-start)
 * [Basic examples](#basic-examples)
 * [Finite fields](#finite-fields)
 * [Algebraic number fields](#algebraic-number-fields)
 * [Cyclotomic fields](#cyclotomic-fields)
-* [Elliptic Curves](#cyclotomic-fields)
+* [Elliptic Curves](#elliptic-curves)
 
 ## Installation
 
@@ -20,12 +21,99 @@ or, for the latest development version:
 pip install git+https://github.com/sj-simmons/numlib.git --user
 ```
 
-This library depends heavily on [polylib](https://github.com/sj-simmons/polylib)
+This library depends heavily on another pure Python library,
+[polylib](https://github.com/sj-simmons/polylib),
 which can be installed with **pip install polylib --user**.
+
+Note: for your Python installation, you may need to type **pip** instead of **pip3**
+in the commands above. You can check whether **pip** points to its Python3 version
+by issuing the command  **pip -V** at your commandline.
+
+## Quick start
+
+#### Define and work in a Galois field
+
+```pycon
+>>> import numlib as nl
+>>> GF = nl.GaloisField(7, 3)
+>>> GF
+Z/7[t]/<-3+3t^2+t^3>
+>>> GF.order()  # 7^3
+343
+```
+Define an element in GF:
+```pycon
+>>> GF([1, 0, 2])
+1+2t^2 + <-3+3t^2+t^3>
+>>> GF([1, 0, 2])**100
+2+t-3t^2 + <-3+3t^2+t^3>
+```
+Alternatively, you can use an indeterminant:
+```pycon
+>>> t = GF.t()  # this is equivalent to t = GF([0, 1], 't')
+>>> 1 + 2*t**2
+1+2t^2 + <-3+3t^2+t^3>
+>>> t**100
+2+t-3t^2 + <-3+3t^2+t^3>
+```
+The element **t**, created as above, is always a generator for GF's multiplicative
+group of units:
+```pycon
+>>> nl.mulorder(t)  # compute the multiplicative order
+342
+```
+If you want something in GF's prime field when using an indeterminant:
+```pycon
+>>> 3*t**0  #  equivalently, GF([3])
+3 + <-3+3t^2+t^3>
+```
+Conveniently iterate through all elements:
+```pycon
+>>> for element in GF:
+...     print(element)
+...
+-3-3t-3t^2
+-3-3t-2t^2
+-3-3t-t^2
+-3-3t
+-3-3t+t^2
+   ...
+```
+
+#### Define an elliptic curve (using its Weierstrass form) over the Galois field GF
+
+```pycon
+>>> E = nl.EllCurve(2*t**2+t+5, 3*t**0)
+>>> E
+y^2 = (3) + (-2+t+2t^2)x + x^3 over Z/7[t]/<-3+3t^2+t^3>
+```
+E is a now generator for the finite <img alt="$\operatorname{GF}(7^3)$" src="svgs/183c0fcbf5555289982cc209850085a7.svg" valign=-4.109589000000009px width="52.00929029999999pt" height="17.4904653pt"/>-rational points of the
+curve <img alt="$y^2 = x^3 + (-2+t+2t^2)x + 3.$" src="svgs/c759bf50d37f3ea44da19bab76b1f55d.svg" valign=-4.109589000000009px width="218.51187105000002pt" height="17.4904653pt"/>
+```pycon
+>>> for point in E:
+...    print(point)
+...
+(-3-3t, -2t+3t^2)
+(-3-3t, 2t-3t^2)
+(-3-3t+t^2, -1+2t-t^2)
+(-3-3t+t^2, 1-2t+t^2)
+(-3-3t+2t^2, -3-3t+3t^2)
+          ...
+```
+Counting the point at infinity, the total number of <img alt="$\operatorname{GF}(7^3)$" src="svgs/183c0fcbf5555289982cc209850085a7.svg" valign=-4.109589000000009px width="52.00929029999999pt" height="17.4904653pt"/>-rational
+points on this curve is 378:
+```pycon
+>>> len(E)
+377
+```
+Warning: the last command can take essentially forever for large curves, which is
+comparable to saying that one gets more encryption bang for one's buck by replacing
+&mdash; when implementing crypto-systems  &mdash; a finite field with an elliptic
+curve over a finite field.
 
 ## Basic examples
 
-First, **numlib** provides various number theoretic utilities that may prove useful.
+First, numlib provides various number theoretic utilities that may prove useful.
 ```pycon
 >>> from numlib import gcd_, xgcd
 >>> gcd_(143, 2662)  # 11 since 143 = 11*13 and 2662 = 2*11^3
@@ -43,43 +131,43 @@ To work, in the interpreter, with the integers, <img alt="$\mathbb{Z}$" src="svg
 ```pycon
 >>> from numlib import Zmod
 >>>
->>> Zn = Zmod(15)  # Zn is a class that returns instances of integers modulo 15
->>> Zn(37)  # 7 mod 15
->>> print(Z(37))  # 7
+>>> R = Zmod(15)  # R is a class that returns instances of integers modulo 15
+>>> R(37)  # 7 mod 15
+>>> print(R(37))  # 7
 >>>
->>> x = Zn(9); y = Zn(30)
+>>> x = R(9); y = R(30)
 >>> z = 301*x + y**2 + x*y + 1000  # We can do arithmetic and integers such as 301
 >>> z  # 4 mod 15                    and 1000 are coerced to integers mod 15
 ```
-**Zn** above is now a class but think of it as a type: the ring,
-<img alt="$\mathbb{Z}/15\mathbb{Z}$" src="svgs/934158f47c70bcc66b2f4126f00259eb.svg" valign=-4.109589000000009px width="46.57551029999998pt" height="16.438356pt"/>, of integers modulo 15.
+R in the previous code block is now a class but think of it as a
+type: the ring, <img alt="$\mathbb{Z}/15$" src="svgs/a3477f7ac2c6287b1119be1b65751b9f.svg" valign=-4.109589000000009px width="35.61656834999999pt" height="16.438356pt"/>, of integers modulo 15.
 ```pycon
->>> print(Zn)  # Z/15Z
+>>> print(R)  # Z/15
 ```
 Some simple class-level methods are available:
 ```pycon
->>> Zn.isField()  # False since 15 is not prime (3 and 5 are zero divisors)
+>>> R.isField()  # False since 15 is not prime (3 and 5 are zero divisors)
 >>>
->>> list(Zn.units())  # Zn.units() is a Python generator
-[1, 2, 4, 7, 8, 11, 13, 14]  # the multiplicative group of units in Z/15Z
+>>> list(R.units())  # R.units() is a Python generator
+[1, 2, 4, 7, 8, 11, 13, 14]  # the multiplicative group of units in Z/15
 >>>
->>> phi = len(list(Zn.units()))  # the order of the group of units
+>>> phi = len(list(R.units()))  # the order of the group of units
 >>> phi  # phi(15) = 8 where phi is Euler's totient function
 >>>
->>> Zn(7)**phi == 1  # True
+>>> R(7)**phi == 1  # True
 >>>
 >>> # Number theoretically, the last equality holds by Euler's Theorem;
 >>> # group theoretically, it follows from Lagrange's Theorem that the
 >>> # order of an element of a group must divide the order of the group.
 >>>
->>> # Let us find the actual order of Zn(7):
+>>> # Let us find the actual order of R(7):
 >>> for i in range(phi):
-...     if Zn(7)**(i+1) == 1:
+...     if R(7)**(i+1) == 1:
 ...         print(i+1)
 ...         break
 4
 ```
-If we prefer, we can balance the representatives of **Z/nZ** about 0:
+If we prefer, we can balance the representatives of **Z/n** about 0:
 ```pycon
 >>> list(Zmod(10, negatives=True))  # [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
 >>> list(Zmod(10, negatives=True).units())  # [-3, -1, 1, 3]
@@ -87,24 +175,24 @@ If we prefer, we can balance the representatives of **Z/nZ** about 0:
 
 #### Exercises
 1. Find the multiplicative inverse of 2022 modulo 2027 or show that no such inverse exists.
-2. Write a program that lists all non-zero elements of <img alt="$\mathbb{Z}/60\mathbb{Z}$" src="svgs/ee092f10f4ef7c41e09d9d3302b629da.svg" valign=-4.109589000000009px width="46.57551029999998pt" height="16.438356pt"/> along
+2. Write a program that lists all non-zero elements of <img alt="$\mathbb{Z}/60$" src="svgs/0a9a6cf9aecafe4d6b38b15898ed04e7.svg" valign=-4.109589000000009px width="35.61656834999999pt" height="16.438356pt"/> along
    with their multiplicative orders.  
-  (a) Is the multiplicative group of units in <img alt="$\mathbb{Z}/60\mathbb{Z}$" src="svgs/ee092f10f4ef7c41e09d9d3302b629da.svg" valign=-4.109589000000009px width="46.57551029999998pt" height="16.438356pt"/> cyclic?  
-  (b) If so, is the group of units in <img alt="$\mathbb{Z}/n\mathbb{Z}$" src="svgs/94d333ba0aaa5e9c8ce88690986075c2.svg" valign=-4.109589000000009px width="40.00396784999999pt" height="16.438356pt"/> always cyclic?  
-3. In the ring <img alt="$\mathbb{Z}/27720\mathbb{Z}$" src="svgs/b76cfadb7c13e668b4a4bcd5a422e2d6.svg" valign=-4.109589000000009px width="71.23313834999999pt" height="16.438356pt"/>, solve each of the following equations for <img alt="$x,$" src="svgs/380aab7befb490c9e8b8027e557ed545.svg" valign=-3.1963502999999895px width="13.96121264999999pt" height="10.2739725pt"/>
+  (a) Is the multiplicative group of units in <img alt="$\mathbb{Z}/60$" src="svgs/0a9a6cf9aecafe4d6b38b15898ed04e7.svg" valign=-4.109589000000009px width="35.61656834999999pt" height="16.438356pt"/> cyclic?  
+  (b) If so, is the group of units in <img alt="$\mathbb{Z}/n$" src="svgs/5a25068b686730b0d5c6d3c047688395.svg" valign=-4.109589000000009px width="29.04502589999999pt" height="16.438356pt"/> always cyclic?  
+3. In the ring <img alt="$\mathbb{Z}/27720$" src="svgs/436dfd6ce001d9cbca71419c5cb63186.svg" valign=-4.109589000000009px width="60.27419804999999pt" height="16.438356pt"/>, solve each of the following equations for <img alt="$x,$" src="svgs/380aab7befb490c9e8b8027e557ed545.svg" valign=-3.1963502999999895px width="13.96121264999999pt" height="10.2739725pt"/>
    or argue that no solution exists.  
   (a) <img alt="$26x = 1$" src="svgs/7deb653917a22092554633006944ac27.svg" valign=0.0px width="55.97024729999999pt" height="10.5936072pt"/>  
   (b) <img alt="$833x = 1$" src="svgs/9fec9726d67beb2280de654054069be9.svg" valign=0.0px width="64.18945664999998pt" height="10.5936072pt"/>  
   (c) <img alt="$143x -7  = 2655$" src="svgs/9b15c3cd44a56b827518f28f8558800c.svg" valign=-1.3698745499999938px width="117.15748439999997pt" height="11.96348175pt"/>  
-4. What are the conditions under which <img alt="$ax = b$" src="svgs/2d669bf55f3460fc469e923f439de136.svg" valign=0.0px width="47.05656944999999pt" height="11.4155283pt"/> always has a solution in <img alt="$\mathbb{Z}/n\mathbb{Z}$" src="svgs/94d333ba0aaa5e9c8ce88690986075c2.svg" valign=-4.109589000000009px width="40.00396784999999pt" height="16.438356pt"/>?
+4. What are the conditions under which <img alt="$ax = b$" src="svgs/2d669bf55f3460fc469e923f439de136.svg" valign=0.0px width="47.05656944999999pt" height="11.4155283pt"/> always has a solution in <img alt="$\mathbb{Z}/n$" src="svgs/5a25068b686730b0d5c6d3c047688395.svg" valign=-4.109589000000009px width="29.04502589999999pt" height="16.438356pt"/>?
    Are those solutions unique?
 
 ### [Finite fields](https://en.wikipedia.org/wiki/Finite_field)
 
-The quotient ring <img alt="$\mathbb{Z}/p\mathbb{Z}$" src="svgs/a05b826333ec801b65201f7764c6754f.svg" valign=-4.109589000000009px width="38.40765719999999pt" height="16.438356pt"/> is a *field* if
+The quotient ring <img alt="$\mathbb{Z}/p$" src="svgs/73c9c321abfaf561fdbde1304ada12c1.svg" valign=-4.109589000000009px width="27.448716899999987pt" height="16.438356pt"/> is a *field* if
 <img alt="$p$" src="svgs/2ec6e630f199f589a2402fdf3e0289d5.svg" valign=-3.1963502999999895px width="8.270567249999992pt" height="10.2739725pt"/> is prime since then every non-zero element has a multiplicative inverse. For example:
 ```pycon
->>> GF = Zmod(23)  # the field Z/23Z
+>>> GF = Zmod(23)  # the field Z/23
 >>> GF(8)**-1  #  8 has inverse 3 mod 23; equivalently, we could have typed 1/GF(8)
 >>> len(list(PF.units())) == 22  # every non-zero element is a unit (i.e., invertible)
 >>> GF.isField()   # True
@@ -113,7 +201,7 @@ Finite fields are often called Galois Fields, hence our notation **GF** in the l
 
 Both **GF.units()** above and, in fact, **GF** itself are Python generators.  This can be useful,
 for instance, if we want to brute-force verify that the cubic <img alt="$1 + x^2 + 3x^3$" src="svgs/ea3a9f0df58be04c4230e07c439287f4.svg" valign=-1.3698729000000083px width="89.33778314999999pt" height="14.750749199999998pt"/>
-is irreducible over <img alt="$\mathbb{Z}/17\mathbb{Z}$" src="svgs/385859f8a0348fdf30e22b4828bed3c2.svg" valign=-4.109589000000009px width="46.57551029999998pt" height="16.438356pt"/>. For this, we use
+is irreducible over <img alt="$\mathbb{Z}/17$" src="svgs/7b7a91d08bdb0f2c3ad080ff4ef2ae37.svg" valign=-4.109589000000009px width="35.61656834999999pt" height="16.438356pt"/>. For this, we use
 [polylib](https://github.com/sj-simmons/polylib) (install with **pip install polylib --user**).
 ```python
 from numlib import Zmod
@@ -127,7 +215,7 @@ for x in GF:
         result = "reducible"
         break
 
-print(f"{f} is {result} in Z/17Z[x]")
+print(f"{f} is {result} in Z/17[x]")
 ```
 The only way that a cubic <img alt="$f(x)$" src="svgs/7997339883ac20f551e7f35efff0a2b9.svg" valign=-4.109589000000009px width="31.99783454999999pt" height="16.438356pt"/> with coefficients in a field <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/> can be
 reducible if it has a factor of the form <img alt="$x-\alpha$" src="svgs/ad1baf7900c88bcd43bffd2907b2a45e.svg" valign=-1.3698745499999996px width="40.06268309999999pt" height="10.958925449999999pt"/> for some <img alt="$\alpha\in\mathbb{K}$" src="svgs/0160bef1ca5087d29cf21b4cb7388b47.svg" valign=-0.6427030499999994px width="43.45307009999999pt" height="11.966898899999999pt"/>;
@@ -154,13 +242,13 @@ If we already know that <img alt="$p$" src="svgs/2ec6e630f199f589a2402fdf3e0289d
 >>> GF = numlib.Zmod(n) # so this is equivalent to above for this n
 ```
 
-Moreover, if **Zn = Zmod(n)**, then the generator **Zn.units()** simply yields in
-turn those elements of the generator **Zn** which are relatively prime
+Moreover, if **R = Zmod(n)**, then the generator **R.units()** simply yields in
+turn those elements of the generator **R** which are relatively prime
 with **n**. If **n** is large, this leads to many applications of the
 Euclidean algorithm.
 
 If the large **n** is known to be prime, then we already know that
-everything but zero in **Zn** is a unit; consider indicating that
+everything but zero in **R** is a unit; consider indicating that
 (which also saves time when computing inverses) as above:
 ```pycon
 >>> PF = Zmod(2**3021377-1, prime=True)  # a Mersenne prime with about 900K digits
@@ -181,7 +269,7 @@ prime order:
 >>> GF(3)+50  # 2, coercion is implemented w/r to all field operations
 ```
 Of course, we can replace 17 with any prime, <img alt="$p,$" src="svgs/88dda0f87c1bb00d3c39ce2f369504cf.svg" valign=-3.1963502999999895px width="12.836790449999992pt" height="10.2739725pt"/> thereby obtaining the field
-<img alt="$\mathbb{Z}/p\mathbb{Z}$" src="svgs/a05b826333ec801b65201f7764c6754f.svg" valign=-4.109589000000009px width="38.40765719999999pt" height="16.438356pt"/> of order <img alt="$p.$" src="svgs/bb44dfbad95f04997776cfe375c4eac3.svg" valign=-3.1963502999999895px width="12.836790449999992pt" height="10.2739725pt"/>
+<img alt="$\mathbb{Z}/p$" src="svgs/73c9c321abfaf561fdbde1304ada12c1.svg" valign=-4.109589000000009px width="27.448716899999987pt" height="16.438356pt"/> of order <img alt="$p.$" src="svgs/bb44dfbad95f04997776cfe375c4eac3.svg" valign=-3.1963502999999895px width="12.836790449999992pt" height="10.2739725pt"/>
 
 Not all finite fields have prime order.  Any field, <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/>, finite or
 not, admits a ring homomorphism <img alt="$\mathbb{Z} \rightarrow \mathbb{K}$" src="svgs/79b8355e58e5550f35e57bba647b281e.svg" valign=0.0px width="49.31497394999999pt" height="11.324195849999999pt"/> defined by
@@ -190,7 +278,7 @@ identity of <img alt="$\mathbb{K}.$" src="svgs/27fe5f6477b011a64df56ef0dfde6c26.
 the ideal <img alt="$\langle p\rangle = p\cdot\mathbb{Z}=\{np~|~n\in\mathbb{Z}\}$" src="svgs/9eea1126e077f3ea7ab6d11e894147eb.svg" valign=-4.109589000000009px width="187.01067824999998pt" height="16.438356pt"/> for some
 prime <img alt="$p$" src="svgs/2ec6e630f199f589a2402fdf3e0289d5.svg" valign=-3.1963502999999895px width="8.270567249999992pt" height="10.2739725pt"/> called the *characteristic* of <img alt="$\mathbb{K};$" src="svgs/a2ae22f0c875f5402d1086a59df6854d.svg" valign=-3.1963502999999998px width="17.35165739999999pt" height="14.52054615pt"/> hence, the image of the
 natural ring homomorphism <img alt="$\mathbb{Z} \rightarrow \mathbb{K}$" src="svgs/79b8355e58e5550f35e57bba647b281e.svg" valign=0.0px width="49.31497394999999pt" height="11.324195849999999pt"/> is a copy
-of either <img alt="$\mathbb{Z}$" src="svgs/b9477ea14234215f4d516bad55d011b8.svg" valign=0.0px width="10.95894029999999pt" height="11.324195849999999pt"/> or <img alt="$\mathbb{Z}/p\mathbb{Z}$" src="svgs/a05b826333ec801b65201f7764c6754f.svg" valign=-4.109589000000009px width="38.40765719999999pt" height="16.438356pt"/> living inside <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/>
+of either <img alt="$\mathbb{Z}$" src="svgs/b9477ea14234215f4d516bad55d011b8.svg" valign=0.0px width="10.95894029999999pt" height="11.324195849999999pt"/> or <img alt="$\mathbb{Z}/p$" src="svgs/73c9c321abfaf561fdbde1304ada12c1.svg" valign=-4.109589000000009px width="27.448716899999987pt" height="16.438356pt"/> living inside <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/>
 (in the latter case, <img alt="$p$" src="svgs/2ec6e630f199f589a2402fdf3e0289d5.svg" valign=-3.1963502999999895px width="8.270567249999992pt" height="10.2739725pt"/> must be prime since otherwise <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/> would have
 non-trivial, non-invertible zero-divisors).
 
@@ -201,7 +289,7 @@ to <img alt="$\mathbb{Q}$" src="svgs/0f452ec0bcf578fa387e4857f80f03f4.svg" valig
 If <img alt="$\mathbb{Z} \rightarrow \mathbb{K}$" src="svgs/79b8355e58e5550f35e57bba647b281e.svg" valign=0.0px width="49.31497394999999pt" height="11.324195849999999pt"/> is not injective then the characteristic,
 <img alt="$\operatorname{char}(K),$" src="svgs/5754eaf5f3833d216505138560f9876b.svg" valign=-4.109589000000009px width="63.12797204999998pt" height="16.438356pt"/> is *positive* &mdash; some prime <img alt="$p$" src="svgs/2ec6e630f199f589a2402fdf3e0289d5.svg" valign=-3.1963502999999895px width="8.270567249999992pt" height="10.2739725pt"/> &mdash; and the
 *prime field* of <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/> is the image of
-<img alt="$\mathbb{Z}$" src="svgs/b9477ea14234215f4d516bad55d011b8.svg" valign=0.0px width="10.95894029999999pt" height="11.324195849999999pt"/> in <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/> (which is isomorphic to <img alt="$\mathbb{Z}/p\mathbb{Z}$" src="svgs/a05b826333ec801b65201f7764c6754f.svg" valign=-4.109589000000009px width="38.40765719999999pt" height="16.438356pt"/>).
+<img alt="$\mathbb{Z}$" src="svgs/b9477ea14234215f4d516bad55d011b8.svg" valign=0.0px width="10.95894029999999pt" height="11.324195849999999pt"/> in <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/> (which is isomorphic to <img alt="$\mathbb{Z}/p$" src="svgs/73c9c321abfaf561fdbde1304ada12c1.svg" valign=-4.109589000000009px width="27.448716899999987pt" height="16.438356pt"/>).
 
 Whether or not <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/> is finite, it is a vector space over its prime field.
 Suppose that a finite field, <img alt="$\mathbb{K}$" src="svgs/9ebeacdd09c18ad447a4e29b9039c3b0.svg" valign=0.0px width="12.785434199999989pt" height="11.324195849999999pt"/>, has dimension <img alt="$n$" src="svgs/55a049b8f161ae7cfeb0197d75aff967.svg" valign=0.0px width="9.86687624999999pt" height="7.0776222pt"/> as a finite-dimensional
@@ -209,13 +297,13 @@ vector space over its prime field of order <img alt="$p$" src="svgs/2ec6e630f199
 <img alt="$q = p^n$" src="svgs/2959e1db6cc745aa33a34574db47eec4.svg" valign=-3.1963519500000044px width="46.24230764999999pt" height="14.116037099999998pt"/>. How can we construct a finite field of prime power order?
 
 To construct such a field, we need a  polynomial <img alt="$f(x)$" src="svgs/7997339883ac20f551e7f35efff0a2b9.svg" valign=-4.109589000000009px width="31.99783454999999pt" height="16.438356pt"/> of degree
-<img alt="$n$" src="svgs/55a049b8f161ae7cfeb0197d75aff967.svg" valign=0.0px width="9.86687624999999pt" height="7.0776222pt"/> that is irreducible over <img alt="$\mathbb{Z}/p\mathbb{Z}.$" src="svgs/f6b0e7431c2cf71e9c9f91a293be2daa.svg" valign=-4.109589000000009px width="42.973882049999986pt" height="16.438356pt"/>  Then we simply quotient
-the polynomial ring <img alt="$\mathbb{Z}/p\mathbb{Z}[x]$" src="svgs/a39cd0d9da8110ce75c21737e64f6a6d.svg" valign=-4.109589000000009px width="56.93509304999999pt" height="16.438356pt"/> (consisting of all polynomials with
-coefficients in <img alt="$\mathbb{Z}/p\mathbb{Z}$" src="svgs/a05b826333ec801b65201f7764c6754f.svg" valign=-4.109589000000009px width="38.40765719999999pt" height="16.438356pt"/>) by the ideal <img alt="$\langle f(x)\rangle$" src="svgs/c6084175338a8a0f04a0ff398ca276b0.svg" valign=-4.109589000000009px width="44.78326709999998pt" height="16.438356pt"/>
-generated by the irreducible <img alt="$f(x)\in \mathbb{Z}/p\mathbb{Z}[x].$" src="svgs/136d89c226dc9cf5634cf7e18b2bdcfb.svg" valign=-4.109589000000009px width="113.59028999999998pt" height="16.438356pt"/>
+<img alt="$n$" src="svgs/55a049b8f161ae7cfeb0197d75aff967.svg" valign=0.0px width="9.86687624999999pt" height="7.0776222pt"/> that is irreducible over <img alt="$\mathbb{Z}/p.$" src="svgs/62cd3ae2cb973630fe60c1b010f2057e.svg" valign=-4.109589000000009px width="32.014941749999984pt" height="16.438356pt"/>  Then we simply quotient
+the polynomial ring <img alt="$\mathbb{Z}/p[x]$" src="svgs/2012540586a66e3dc43394a218c44338.svg" valign=-4.109589000000009px width="45.97615274999999pt" height="16.438356pt"/> (consisting of all polynomials with
+coefficients in <img alt="$\mathbb{Z}/p$" src="svgs/73c9c321abfaf561fdbde1304ada12c1.svg" valign=-4.109589000000009px width="27.448716899999987pt" height="16.438356pt"/>) by the ideal <img alt="$\langle f(x)\rangle$" src="svgs/c6084175338a8a0f04a0ff398ca276b0.svg" valign=-4.109589000000009px width="44.78326709999998pt" height="16.438356pt"/>
+generated by the irreducible <img alt="$f(x)\in \mathbb{Z}/p[x].$" src="svgs/74a3db77517bf8b7d263df20d598b009.svg" valign=-4.109589000000009px width="102.63134969999999pt" height="16.438356pt"/>
 
 Above, we checked that <img alt="$1 + x^2 + 3x^3$" src="svgs/ea3a9f0df58be04c4230e07c439287f4.svg" valign=-1.3698729000000083px width="89.33778314999999pt" height="14.750749199999998pt"/> is irreducible over
-<img alt="$\mathbb{Z}/17\mathbb{Z}.$" src="svgs/37cc28ae9bdfeca70be914054d7190f8.svg" valign=-4.109589000000009px width="51.14173349999999pt" height="16.438356pt"/>  We can construct elements of the finite field of
+<img alt="$\mathbb{Z}/17.$" src="svgs/e2d61fa49b6fc21b56dc34ecbfeb0580.svg" valign=-4.109589000000009px width="40.18279319999999pt" height="16.438356pt"/>  We can construct elements of the finite field of
 order <img alt="$17^3$" src="svgs/d07c190856b363b8ab7555fd37127d7d.svg" valign=0.0px width="22.990966349999994pt" height="13.380876299999999pt"/> as follows.
 
 ```pycon
@@ -226,19 +314,19 @@ order <img alt="$17^3$" src="svgs/d07c190856b363b8ab7555fd37127d7d.svg" valign=0
 >>> x = FPolynomial([0, PF(1)])  # indeterminant for polys over PF
 >>> f = 1+x**2+3*x**3  # FPolynomial((1 mod 17, 0 mod 17, 1 mod 17, 3 mod 17))
 >>> GF = FPmod(f)
->>> print(GF)  # Z/17Z [x] / <1 + x^2 + 3x^3>
+>>> print(GF)  # Z/17[x]/<1 + x^2 + 3x^3>
 >>>
 >>> # now we can use the class GF to define elements of the Galois field:
 >>> p1 = GF([1,2,3,4])  # 11 + 2x + 13x^2 mod 1 + x^2 + 3x^3
 >>> p1**-1  # 4 + 12x + 14x^2 mod 1 + x^2 + 3x^3
 ```
 Suppose, though, that we want to work conveniently in
-<img alt="$\mathbb{Z}/p\mathbb{Z}[x] / \langle 1 + x^2 + 3x^3\rangle$" src="svgs/f0a745bed72047a2620b34f488e59381.svg" valign=-4.109589000000009px width="168.09943259999997pt" height="17.4904653pt"/>
+<img alt="$\mathbb{Z}/p[x] / \langle 1 + x^2 + 3x^3\rangle$" src="svgs/9746574a81479c795f4b26e528256ce7.svg" valign=-4.109589000000009px width="157.14049229999998pt" height="17.4904653pt"/>
 with an indeterminant.  Continuing with the interactive session above
 ```pycon
->>> # currently x is an element of Z/17Z [x]
+>>> # currently x is an element of Z/17[x]
 >>> x  # FPolynomial((0 mod 17, 1 mod 17))
->>> x**100 # this is x^100 in Z/17Z [x]
+>>> x**100 # this is x^100 in Z/17[x]
 >>> GF(x**100) # 16 + 7x + x^2 mod 1 + x^2 + 3x^3  <- now it's in the Galois field
 >>>
 >>> # the notation is clearer if we change the indeterminant to 't'
@@ -251,7 +339,7 @@ with an indeterminant.  Continuing with the interactive session above
 >>> t**100  # 16 + 7t + t^2 mod 1 + t^2 + 3t^3
 ```
 
-Quotienting <img alt="$\mathbb{Z}/p\mathbb{Z}[x]$" src="svgs/a39cd0d9da8110ce75c21737e64f6a6d.svg" valign=-4.109589000000009px width="56.93509304999999pt" height="16.438356pt"/> by the ideal
+Quotienting <img alt="$\mathbb{Z}/p[x]$" src="svgs/2012540586a66e3dc43394a218c44338.svg" valign=-4.109589000000009px width="45.97615274999999pt" height="16.438356pt"/> by the ideal
 <img alt="$\langle f(x)\rangle$" src="svgs/c6084175338a8a0f04a0ff398ca276b0.svg" valign=-4.109589000000009px width="44.78326709999998pt" height="16.438356pt"/> generated by an irreducible is wholly analogous to
 quotienting <img alt="$\mathbb{Z}$" src="svgs/b9477ea14234215f4d516bad55d011b8.svg" valign=0.0px width="10.95894029999999pt" height="11.324195849999999pt"/> by the ideal <img alt="$\langle p\rangle=p\mathbb{Z}$" src="svgs/54b1866a4895aaa9ac5506d0f2ebdef8.svg" valign=-4.109589000000009px width="62.20313879999999pt" height="16.438356pt"/> generated by
 a prime number.  We get a field in both cases, roughly due to the fact that
@@ -298,22 +386,22 @@ the Euclidean algorithm in <img alt="$\mathbb{K}[x].$" src="svgs/832c5c8e7f5fd14
 >>> from polylib import FPolynomial
 >>>
 >>> x = FPolynomial([0, Zmod(17)(1)])
->>> # let us invert, in Z/17Z[x], 1 + 2x + 3x^2 + 4x^3 modulo 1 +x^2 + 3x^4
+>>> # let us invert, in Z/17[x], 1 + 2x + 3x^2 + 4x^3 modulo 1 +x^2 + 3x^4
 >>> tup = xgcd(1+2*x+3*x**2+4*x**3, 1+x**2+3*x**3)
 >>> tup[0]  # FPolynomial((16 mod 17,)), the gcd is a constant polynomial
 >>> print(tup[1]*tup[0][0]**-1)  # 4 + 12x + 14x^2, the inverse
 ```
 Note that this last interactive session agrees with our previous session in which
 we worked in the Galois field
-<img alt="$\mathbb{Z}/p\mathbb{Z}[x] / \langle 1 + x^2 + 3x^3\rangle.$" src="svgs/1a28c5d56480e9954e44b8d36c15d351.svg" valign=-4.109589000000009px width="172.66565744999997pt" height="17.4904653pt"/> In fact, the
+<img alt="$\mathbb{Z}/p[x] / \langle 1 + x^2 + 3x^3\rangle.$" src="svgs/2f2a39abe93d5a2780057f61f8cc195b.svg" valign=-4.109589000000009px width="161.70671714999997pt" height="17.4904653pt"/> In fact, the
 **FPmod** class simply calls **xgcd** when it needs to invert something.
 
 #### Field extensions
 
 From the previous discussion, we know that every finite field has prime power order
 and that we can construct such a finite field with order <img alt="$q=p^n$" src="svgs/a45d222501990a73ef2943bc648355e0.svg" valign=-3.1963519500000044px width="46.24230764999999pt" height="14.116037099999998pt"/> by quotienting
-the polynomial ring <img alt="$\mathbb{Z}/p\mathbb{Z}[x]$" src="svgs/a39cd0d9da8110ce75c21737e64f6a6d.svg" valign=-4.109589000000009px width="56.93509304999999pt" height="16.438356pt"/> with the ideal <img alt="$\langle f(x)\rangle$" src="svgs/c6084175338a8a0f04a0ff398ca276b0.svg" valign=-4.109589000000009px width="44.78326709999998pt" height="16.438356pt"/>
-generated by an irreducible polynomial in <img alt="$\mathbb{Z}/p\mathbb{Z}[x].$" src="svgs/f36e1d43ff08356e3743408ca373c246.svg" valign=-4.109589000000009px width="61.50131789999999pt" height="16.438356pt"/>
+the polynomial ring <img alt="$\mathbb{Z}/p[x]$" src="svgs/2012540586a66e3dc43394a218c44338.svg" valign=-4.109589000000009px width="45.97615274999999pt" height="16.438356pt"/> with the ideal <img alt="$\langle f(x)\rangle$" src="svgs/c6084175338a8a0f04a0ff398ca276b0.svg" valign=-4.109589000000009px width="44.78326709999998pt" height="16.438356pt"/>
+generated by an irreducible polynomial in <img alt="$\mathbb{Z}/p[x].$" src="svgs/4e0688d80c924b32de25ae472f5bd95c.svg" valign=-4.109589000000009px width="50.542377599999995pt" height="16.438356pt"/>
 Of course, in general, there are different candidates for the irreducible <img alt="$f.$" src="svgs/327b2cbbade2d2154eacafe4501096e8.svg" valign=-3.1963503000000055px width="13.47039209999999pt" height="14.611878599999999pt"/> Do
 different choices of <img alt="$f$" src="svgs/190083ef7a1625fbc75f243cffb9c96d.svg" valign=-3.1963503000000055px width="9.81741584999999pt" height="14.611878599999999pt"/> lead to different finite fields of order <img alt="$q?$" src="svgs/b682918429c04844ba596497e9c5ca61.svg" valign=-3.1963503000000055px width="15.69067829999999pt" height="14.611878599999999pt"/>
 
@@ -340,20 +428,20 @@ contains <img alt="$K$" src="svgs/d6328eaebbcd5c358f426dbea4bdbf70.svg" valign=0
 of <img alt="$K$" src="svgs/d6328eaebbcd5c358f426dbea4bdbf70.svg" valign=0.0px width="15.13700594999999pt" height="11.232861749999998pt"/> (important: <img alt="$L/K$" src="svgs/76b5555a7ab7c6106ad9a8da5c6d2c28.svg" valign=-4.109589000000009px width="34.54345784999999pt" height="16.438356pt"/> is not a quotient of fields).
 
 For instance, the field
-<img alt="$\mathbb{Z}/p\mathbb{Z}[x] / \langle 1 + x^2 + 3x^3\rangle$" src="svgs/f0a745bed72047a2620b34f488e59381.svg" valign=-4.109589000000009px width="168.09943259999997pt" height="17.4904653pt"/>
+<img alt="$\mathbb{Z}/p[x] / \langle 1 + x^2 + 3x^3\rangle$" src="svgs/9746574a81479c795f4b26e528256ce7.svg" valign=-4.109589000000009px width="157.14049229999998pt" height="17.4904653pt"/>
 is an extension of its prime field &mdash; note that said prime field is just image
 in the quotient group of the constant polynomials (since the multiplicative identity in
-<img alt="$\mathbb{Z}/p\mathbb{Z}[x] / \langle 1 + x^2 + 3x^3\rangle$" src="svgs/f0a745bed72047a2620b34f488e59381.svg" valign=-4.109589000000009px width="168.09943259999997pt" height="17.4904653pt"/>
+<img alt="$\mathbb{Z}/p[x] / \langle 1 + x^2 + 3x^3\rangle$" src="svgs/9746574a81479c795f4b26e528256ce7.svg" valign=-4.109589000000009px width="157.14049229999998pt" height="17.4904653pt"/>
 is just <img alt="$1 + \langle 1 + x^2 + 3x^3\rangle$" src="svgs/d857f60dfc38f221a5084c0871288fce.svg" valign=-4.109589000000009px width="131.25553155pt" height="17.4904653pt"/>).
 
 Now, obviously, since it is irreducible, <img alt="$f(x) = 1 + x^2 + 3x^3$" src="svgs/5176d76f6adc7ec6be39077496db221b.svg" valign=-4.109589000000009px width="143.25324915pt" height="17.4904653pt"/> does not have a root
-in <img alt="$\mathbb{Z}/p\mathbb{Z};$" src="svgs/9be6aac789060cd71d64398a77414c14.svg" valign=-4.109589000000009px width="42.973882049999986pt" height="16.438356pt"/> but it does have a root in the extension
-<img alt="$\mathbb{Z}/p\mathbb{Z}[x] / \langle 1 + x^2 + 3x^3\rangle;$" src="svgs/d6e0d79409e65c9d37d6bfb1c45b05e4.svg" valign=-4.109589000000009px width="172.66565744999997pt" height="17.4904653pt"/>
+in <img alt="$\mathbb{Z}/p;$" src="svgs/65b68a09ffad5ee62dfbe529b6e5536a.svg" valign=-4.109589000000009px width="32.014941749999984pt" height="16.438356pt"/> but it does have a root in the extension
+<img alt="$\mathbb{Z}/p[x] / \langle 1 + x^2 + 3x^3\rangle;$" src="svgs/f1a907a11adcecc2b58f5b361fa3378e.svg" valign=-4.109589000000009px width="161.70671714999997pt" height="17.4904653pt"/>
 namely, <img alt="$x + \langle 1 + x^2 + 3x^3\rangle:$" src="svgs/51ec1011ed2fae97fab3ff7c3df9bc48.svg" valign=-4.109589000000009px width="141.56363265pt" height="17.4904653pt"/>
 
 <p align="center"><img alt="$$f(x + \langle 1 + x^2 + 3x^3\rangle) = f(x) + \langle 1 + x^2 + 3x^3\rangle = \langle 1 + x^2 + 3x^3\rangle.$$" src="svgs/b0618bbbf4193ed2d08a1c189e3fcf7d.svg" valign=0.0px width="461.41492650000004pt" height="18.312383099999998pt"/></p>
 
-That <img alt="$x \in \mathbb{Z}/p\mathbb{Z}[x] / \langle 1 + x^2 + 3x^3\rangle$" src="svgs/595b52ce903929dbab4c3f0d7f3c0bfd.svg" valign=-4.109589000000009px width="197.58555959999998pt" height="17.4904653pt"/> is a root of
+That <img alt="$x \in \mathbb{Z}/p[x] / \langle 1 + x^2 + 3x^3\rangle$" src="svgs/5452b5cc0b20f0828504a376ea1a3235.svg" valign=-4.109589000000009px width="186.62661765pt" height="17.4904653pt"/> is a root of
 <img alt="$f(x) = 1 + x^2 + 3x^3$" src="svgs/5176d76f6adc7ec6be39077496db221b.svg" valign=-4.109589000000009px width="143.25324915pt" height="17.4904653pt"/> is a
 tautology; still, we can verify it concretely. Continuing the previous interactive session:
 ```pycon
@@ -370,10 +458,10 @@ The chosen <img alt="$f$" src="svgs/190083ef7a1625fbc75f243cffb9c96d.svg" valign
 if one required that the minimal
 
 Once we have a monic polynomial of degree <img alt="$r$" src="svgs/89f2e0d2d24bcf44db73aab8fc03252c.svg" valign=0.0px width="7.87295519999999pt" height="7.0776222pt"/> the Galois field of order <img alt="$p^r$" src="svgs/cdc535338263f4dc40336d4546b6d623.svg" valign=-3.1963519500000044px width="14.728015499999989pt" height="14.116037099999998pt"/> can
-be realized as the quotient of the polynomial ring <img alt="$(\mathbb{Z}/p\mathbb{Z})[x]$" src="svgs/1da70e9963a3842a0405814a5a218802.svg" valign=-4.109589000000009px width="69.72052724999999pt" height="16.438356pt"/> and
+be realized as the quotient of the polynomial ring <img alt="$(\mathbb{Z}/p)[x]$" src="svgs/da59cb08e65509b38073548eedb4e008.svg" valign=-4.109589000000009px width="58.76158694999999pt" height="16.438356pt"/> and
 the ideal generated by the irreducible monic polynomial.
 
-Above we showed that <img alt="$1 + x^2 + 3x^3$" src="svgs/ea3a9f0df58be04c4230e07c439287f4.svg" valign=-1.3698729000000083px width="89.33778314999999pt" height="14.750749199999998pt"/> is irreducible over <img alt="$\mathbb{Z}/17\mathbb{Z}.$" src="svgs/37cc28ae9bdfeca70be914054d7190f8.svg" valign=-4.109589000000009px width="51.14173349999999pt" height="16.438356pt"/>
+Above we showed that <img alt="$1 + x^2 + 3x^3$" src="svgs/ea3a9f0df58be04c4230e07c439287f4.svg" valign=-1.3698729000000083px width="89.33778314999999pt" height="14.750749199999998pt"/> is irreducible over <img alt="$\mathbb{Z}/17.$" src="svgs/e2d61fa49b6fc21b56dc34ecbfeb0580.svg" valign=-4.109589000000009px width="40.18279319999999pt" height="16.438356pt"/>
 The same is true for the monic polynomial <img alt="$6 + 6x^2 + x^3.$" src="svgs/94b6b0109e94fdec1c70cebe8da962ef.svg" valign=-1.3698729000000083px width="94.72592084999998pt" height="14.750749199999998pt"/>
 ```pycon
   >>> from polylib import FPolynomial
@@ -381,7 +469,7 @@ The same is true for the monic polynomial <img alt="$6 + 6x^2 + x^3.$" src="svgs
 >>> print(1/PF(3) * FPolynomial([1, 0, 1, 3]))  # 6 + 6x^2 + x^3
 ```
 The quotient field
-<img alt="$(\mathbb{Z}/17\mathbb{Z})[x]/\langle 6 + 6x^2 + x^3\rangle$" src="svgs/f9c5c172d9b7b850d13b78d16f642443.svg" valign=-4.109589000000009px width="189.05271825pt" height="17.4904653pt"/> is in fact a field of
+<img alt="$(\mathbb{Z}/17)[x]/\langle 6 + 6x^2 + x^3\rangle$" src="svgs/b2df3c26f0992a7d0d25c869d9a91d66.svg" valign=-4.109589000000009px width="178.09377794999997pt" height="17.4904653pt"/> is in fact a field of
 order <img alt="$17^3$" src="svgs/d07c190856b363b8ab7555fd37127d7d.svg" valign=0.0px width="22.990966349999994pt" height="13.380876299999999pt"/>.
 
 We can use **numlib** to get our hands on this Galois field as follows.
@@ -390,7 +478,7 @@ We can use **numlib** to get our hands on this Galois field as follows.
 >>> from polylib import FPolynomial
 >>> PF = Zmod(17)
 >>> GF = FPmod(FPolynomial([PF(6), PF(0), PF(6), PF(1)]))   # A Galois field
->>> print(GF)  # Z/17Z [x] / <6 + 6x^2 + x^3>
+>>> print(GF)  # Z/17[x]/<6 + 6x^2 + x^3>
 ```
 
 In practice, the symbology of the second to last line is too repetitive.  We see better
@@ -418,9 +506,9 @@ from numlib import Zmod, FPmod
 from polylib import FPolynomial
 from itertools import product
 
-PF = Zmod(3)  # the prime field Z/3Z
+PF = Zmod(3)  # the prime field Z/3
 t = FPolynomial([0, PF(1)], 't')  # some prefer t for Galois fields
-irred = 1 + 2 * t ** 2 + t ** 3  # an irreducible cubic over Z/3Z
+irred = 1 + 2 * t ** 2 + t ** 3  # an irreducible cubic over Z/3
 
 GF = FPmod(irred)  # a Galois field of order 3^3
 
@@ -449,7 +537,7 @@ Before we run the program, we know that the order of each element must divide
 <img alt="$3^3-1=26$" src="svgs/afd70bf0b8a36a4d964f6941089327bf.svg" valign=-1.3698729000000083px width="82.26011969999999pt" height="14.750749199999998pt"/> since that's the order of the multiplicative group of units in this
 case. Here is the output of the program:
 ```
-Orders of non-zero elements of Z/3Z [t] / <1 + 2t^2 + t^3>
+Orders of non-zero elements of Z/3[t]/<1 + 2t^2 + t^3>
 
 order
  13   t^2, 2t, 2t+t^2, 2t+2t^2, 1+2t^2, 1+t, 1+t+t^2, 1+2t, 1+2t+t^2, 2+2t^2, 2+t+t^2, 2+2t+t^2
@@ -462,7 +550,7 @@ We see that the multiplicative group of units is in fact cyclic. It turns out th
 that the group of units is always cyclic (see ...).
 
 Notice that the polynomial
-<img alt="$t\in\mathbb{Z}/3\mathbb{Z}[x]/\langle t + 2r^2 +t^3\rangle$" src="svgs/d40b32e00694ed9911231f3f3dbdb682.svg" valign=-4.109589000000009px width="186.81127575pt" height="17.4904653pt"/> generates the entire
+<img alt="$t\in\mathbb{Z}/3[x]/\langle t + 2r^2 +t^3\rangle$" src="svgs/7fb1dc67bdbafbaba9d0e90614bc8253.svg" valign=-4.109589000000009px width="175.85233544999997pt" height="17.4904653pt"/> generates the entire
 group of units.  When <img alt="$t$" src="svgs/4f4f4e395762a3af4575de74c019ebb5.svg" valign=0.0px width="5.936097749999991pt" height="10.110901349999999pt"/> is such a generator  This is particularly nice
 
 Knowing this, there is no need to break out **itertools.product** in
@@ -470,9 +558,8 @@ the code above because the powers of <img alt="$t$" src="svgs/4f4f4e395762a3af45
 Galois field.
 
 #### Exercise
-5. Rewrite the program above with using **itertools.product** and observe that you
-   get the same output.
-6. Write a program that finds *all* irreducible, monic cubics over <img alt="$\mathbb{Z}/3\mathbb{Z}[x].$" src="svgs/f4341a82f05856a060767ebac4470845.svg" valign=-4.109589000000009px width="61.44995999999999pt" height="16.438356pt"/> How many of those lead to <img alt="$t$" src="svgs/4f4f4e395762a3af4575de74c019ebb5.svg" valign=0.0px width="5.936097749999991pt" height="10.110901349999999pt"/> be a generator?
+5. Rewrite the program above without using **itertools.product** and observe that you get the same output.
+6. Write a program that finds *all* irreducible, monic cubics over <img alt="$\mathbb{Z}/3[x].$" src="svgs/bc299bd56543342f626b12fd87dc0a5b.svg" valign=-4.109589000000009px width="50.491019699999995pt" height="16.438356pt"/> How many of those lead to <img alt="$t$" src="svgs/4f4f4e395762a3af4575de74c019ebb5.svg" valign=0.0px width="5.936097749999991pt" height="10.110901349999999pt"/> be a generator?
 
 A Galois field of order <img alt="$p^r$" src="svgs/cdc535338263f4dc40336d4546b6d623.svg" valign=-3.1963519500000044px width="14.728015499999989pt" height="14.116037099999998pt"/> is often denoted <img alt="$\operatorname{GF}(p^r)$" src="svgs/97833e01f80c4c539094bb84cc9e083d.svg" valign=-4.109589000000009px width="51.96550754999999pt" height="16.438356pt"/> where <img alt="$p$" src="svgs/2ec6e630f199f589a2402fdf3e0289d5.svg" valign=-3.1963502999999895px width="8.270567249999992pt" height="10.2739725pt"/> is
 prime and <img alt="$r$" src="svgs/89f2e0d2d24bcf44db73aab8fc03252c.svg" valign=0.0px width="7.87295519999999pt" height="7.0776222pt"/> is a positive integer.
@@ -517,32 +604,35 @@ is a square-free integer; for instance:
 ## [Elliptic Curves](https://encyclopediaofmath.org/wiki/Elliptic_curve)
 
 Let us define an elliptic curve, <img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/>,  with Weierstrass normal form
-<img alt="$y^2= x^3 + 17x + 20$" src="svgs/2261788873d14dd272cdb92343f9c839.svg" valign=-3.1963503000000086px width="137.1649521pt" height="16.5772266pt"/>  over, say, <img alt="$\mathbb{Z}/43\mathbb{Z}.$" src="svgs/9b91042e3922615bafe06a87d5a21926.svg" valign=-4.109589000000009px width="51.14173349999999pt" height="16.438356pt"/>
+<img alt="$y^2= x^3 + 17x + 20$" src="svgs/2261788873d14dd272cdb92343f9c839.svg" valign=-3.1963503000000086px width="137.1649521pt" height="16.5772266pt"/>  over, say, <img alt="$\mathbb{Z}/43.$" src="svgs/4f4bb62712aa4196478bb8f1133f62d3.svg" valign=-4.109589000000009px width="40.18279319999999pt" height="16.438356pt"/>
 ```pycon
->>>from numlib import Zmod, EllCurve
->>> GF = Zmod(43)
->>> E = EllCurve(GF(17), GF(20))
+>>> from numlib import Zmod, EllCurve
+>>> PF = Zmod(43)  # a prime field
+>>> E = EllCurve(PF(17), PF(20))
 >>> E
-y^2 = 20 + 17x + x^3 over Z/43Z
->>> E.j  # let's check that the curve is non-singular
-15 + <43>
+y^2 = 20 + 17x + x^3 over Z/43
+>>> E.discriminant() # let's check that the curve is non-singular
+21 + <43>
+>>> E.j-invariant()
+21 + <43>
 ```
 We can define points on the curve using integers &mdash; their correct type
 will be inferred from the coefficients (17 and 20) used to define the curve:
 ```pycon
 >>> E(25, 26)
-(25, 26) on y^2 = 20 + 17x + x^3 over Z/43Z
+(25, 26) on y^2 = 20 + 17x + x^3 over Z/43
 >>> print(E(25, 26))
 (25, 26)
 >>> E(1,2)
-ValueError: (1, 2) is not on y^2 = 20 + 17x + x^3
+ValueError: (1, 2) is not on y^2 = 20 + 17x + x^3 ...
 ```
 Let us find all points on the curve:
 ```pycon
+>>> from itertools import product
 >>> count = 0
->>> for coef in product(GF,GF):
+>>> for coeffs in product(PF,PF):
 ...     try:
-...         print(E(*coef))
+...         print(E(*coeffs))
 ...         count += 1
 ...     except:
 ...         pass
@@ -557,32 +647,136 @@ Let us find all points on the curve:
 (39, 24)
 (41, 8)
 (41, 35)
->>> print(count)
+>>> count
 46
 ```
-In total, the curve <img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/> consists of 47 points including the point at infinity.
-Any finite point on the curve is a generator.
+In total, the curve <img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/> consists of 47 points including the point at infinity:
+any finite point on the curve is a generator:
 ```pycon
+>>> len(set(n * E(25, 26) for n in range(1, 48)))
+47
 >>> 47 * E(25, 26)
-[0: 1: 0] on y^2 = 20 + 17x + x^3 over Z/43Z
+[0: 1: 0] on y^2 = 20 + 17x + x^3 over Z/43
 ```
-The curve is an Abelian group; an elements additive inverse is itself with the
+The curve is an Abelian group; an element's additive inverse is itself with the
 negated y-coordinate:
 ```pycon
 >>> E(25, 26) + E(25, -26)
-[0: 1: 0] on y^2 = 20 + 17x + x^3 over Z/43Z
+[0: 1: 0] on y^2 = 20 + 17x + x^3 over Z/43
 ```
 
-Exercise:
+Exercises:
 
-1. How many points are on the curve <img alt="$y^2= x^3 + 1113x + 1932$" src="svgs/dbdd4f923720bf67a1dfab8ba8e5d527.svg" valign=-3.1963503000000086px width="170.04179114999997pt" height="16.5772266pt"/> over
-   $\mathbb{Z}/2017\mathbb{Z}$? Is this curve cyclic?
+7. The method of iterating, as above, through the product <img alt="$\operatorname{PF} \times \operatorname{PF}$" src="svgs/cc25678c95d9ad77731747ccf3137f9f.svg" valign=-1.369874549999991px width="62.10050879999999pt" height="12.6027363pt"/> is inefficient in general since it is order <img alt="$\mathcal{O}(n^2)$" src="svgs/c5566036dd2bd924fef1c6263072eb45.svg" valign=-4.109589000000009px width="43.570210199999984pt" height="17.4904653pt"/> in the size of <img alt="$\operatorname{PF}.$" src="svgs/09f485feb71728c385ea8299c839e059.svg" valign=0.0px width="29.22375884999999pt" height="11.232861749999998pt"/> (Also, try/except is not cheap.) Meanwhile, the elliptic curve should have roughly the same order as <img alt="$\operatorname{PF}.$" src="svgs/09f485feb71728c385ea8299c839e059.svg" valign=0.0px width="29.22375884999999pt" height="11.232861749999998pt"/> (Footne to Hasse's thm here).  Implement an <img alt="$\mathcal{O}(n)$" src="svgs/eaf65be831b761bd6436418200a823ad.svg" valign=-4.109589000000009px width="36.19574969999999pt" height="16.438356pt"/> algorithm that finds all points on the curve <img alt="$E.$" src="svgs/4d25e0b0e43d440c7619891f54dba48f.svg" valign=0.0px width="17.64840164999999pt" height="11.232861749999998pt"/>  Hint: first compute the squares of all elements of <img alt="$\operatorname{PF}.$" src="svgs/09f485feb71728c385ea8299c839e059.svg" valign=0.0px width="29.22375884999999pt" height="11.232861749999998pt"/>
+
+8. How many points are on the curve <img alt="$y^2= x^3 + 1113x + 1932$" src="svgs/dbdd4f923720bf67a1dfab8ba8e5d527.svg" valign=-3.1963503000000086px width="170.04179114999997pt" height="16.5772266pt"/> over <img alt="$\mathbb{Z}/2017?$" src="svgs/1324004bc7c64764a79b0c6b8e2b6232.svg" valign=-4.109589000000009px width="59.81757869999999pt" height="16.438356pt"/> Is this curve cyclic?
+
+A more correct notation for the curve above is <img alt="$E(\mathbb{Z}/43);$" src="svgs/25b4326dcd1246d95313a2ab89101ed0.svg" valign=-4.109589000000009px width="66.05040419999999pt" height="16.438356pt"/> then, the name
+<img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/> can be reserved for the set of points <img alt="$(x,y)$" src="svgs/7392a8cd69b275fa1798ef94c839d2e0.svg" valign=-4.109589000000009px width="38.135511149999985pt" height="16.438356pt"/> in the *algebraic closure* of
+<img alt="$\mathbb{Z}/43$" src="svgs/6713273f26b0786147c5f82b4bf58596.svg" valign=-4.109589000000009px width="35.61656834999999pt" height="16.438356pt"/> which satisfy <img alt="$y^2= x^3 + 1113x + 1932$" src="svgs/dbdd4f923720bf67a1dfab8ba8e5d527.svg" valign=-3.1963503000000086px width="170.04179114999997pt" height="16.5772266pt"/>.
+
+In common mathematical parlance, we know that the number of
+<img alt="$\mathbb{Z}/43$" src="svgs/6713273f26b0786147c5f82b4bf58596.svg" valign=-4.109589000000009px width="35.61656834999999pt" height="16.438356pt"/>-rational points of <img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/> is <img alt="$47$" src="svgs/b3f8830b237658b2e64f9849bc647471.svg" valign=0.0px width="16.438418699999993pt" height="10.5936072pt"/>; together, those
+comprise <img alt="$E(\mathbb{Z}/43).$" src="svgs/f2f2c67d3f10438038a6795b7e23caff.svg" valign=-4.109589000000009px width="66.05040419999999pt" height="16.438356pt"/>
+
+It is also good to write <img alt="$E/\mathbb{F}_{43}$" src="svgs/de2395ab1a8b770e830f18bc381dced5.svg" valign=-4.109589000000009px width="44.452166549999994pt" height="16.438356pt"/> to indicating where live the
+coefficients <img alt="$a$" src="svgs/44bc9d542a92714cac84e01cbbb7fd61.svg" valign=0.0px width="8.68915409999999pt" height="7.0776222pt"/> and <img alt="$b$" src="svgs/4bdc8d9bcfb35e1c9bfb51fc69687dfc.svg" valign=0.0px width="7.054796099999991pt" height="11.4155283pt"/> that determine the Weierstrass form of the curve.
+Note that the <img alt="$/$" src="svgs/87f05cbf93b3fa867c09609490a35c99.svg" valign=-4.109589000000009px width="8.219209349999991pt" height="16.438356pt"/> has nothing to do with quotienting, so we wrote <img alt="$\mathbb{F}_43$" src="svgs/65cfa8c1a8da852b6e50fc55e23739f9.svg" valign=-2.465728650000001px width="25.63935659999999pt" height="13.7899245pt"/>
+instead of the notation <img alt="$\mathbb{Z}/{43}$" src="svgs/50fa74787e660074440a008b4517309a.svg" valign=-4.109589000000009px width="35.61656834999999pt" height="16.438356pt"/> where the slash *does* indicate
+quotienting.
+
+Now consider the set of points in an algebraically closed field that lie on
+some Weiestrass curve with coefficients <img alt="$a$" src="svgs/44bc9d542a92714cac84e01cbbb7fd61.svg" valign=0.0px width="8.68915409999999pt" height="7.0776222pt"/> and <img alt="$b$" src="svgs/4bdc8d9bcfb35e1c9bfb51fc69687dfc.svg" valign=0.0px width="7.054796099999991pt" height="11.4155283pt"/> elements of a subfield <img alt="$k$" src="svgs/63bb9849783d01d91403bc9a5fea12a2.svg" valign=0.0px width="9.075367949999992pt" height="11.4155283pt"/>.
+Since the group addition laws are rational expressions of the coordinates of
+points lying on the curve, the <img alt="$K$" src="svgs/d6328eaebbcd5c358f426dbea4bdbf70.svg" valign=0.0px width="15.13700594999999pt" height="11.232861749999998pt"/>-rational points of <img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/> form a group for
+any intermediate field <img alt="$K$" src="svgs/d6328eaebbcd5c358f426dbea4bdbf70.svg" valign=0.0px width="15.13700594999999pt" height="11.232861749999998pt"/>.
+
+Of course, if we expand our point of view to an extension field then we generally
+expect to pick up more up more points.  Here is a concrete demonstration:
+``` python
+import numlib as nl
+import polylib as pl
+
+PF = nl.Zmod(43)  # a prime field
+irreducible = pl.FPolynomial([PF(5), PF(2), PF(1)], 't')  # 5+2t+t^2 in Z/43[t]
+GF = nl.FPmod(irreducible)  # GF(43^2)
+
+E =  nl.EllCurve(GF([17]), GF([20]))  # y^2 = 20+17x+x^3 over Z/43[t]/<5+2t+t^2>
+
+squares = {}  # dict that maps squares to their roots
+for y in GF:
+    squares.setdefault(y**2, []).append(y)
+
+points_of_E = {E(0,1,0)}
+for x in GF:
+   f_of_x = E.f.of(x)
+   if f_of_x in squares:
+       for y in squares[f_of_x]:
+           points_of_E.add(E(x,y))
+
+print(len(points_of_E))
+```
+Notes:
+* Notice that <img alt="$\operatorname{GF}$" src="svgs/e8dabd4b46e75cbaa6866d30d94e06e3.svg" valign=0.0px width="23.63021594999999pt" height="11.232861749999998pt"/> is a generator (that runs through all elements of <img alt="$\operatorname{GF}(43^2)).$" src="svgs/89ebb6d48c1e59e09e440090f4064985.svg" valign=-4.109589000000009px width="71.18743994999998pt" height="17.4904653pt"/>
+* **E.f** is just the function defining <img alt="$E:$" src="svgs/5ae864f6b5293eaafacf92e58b15aef3.svg" valign=0.0px width="22.21449944999999pt" height="11.232861749999998pt"/>
+  ```python
+  print(E.f)  # 20 + 17x + x^3
+  ```
+* A subtlety is that one must define the curve by specifying coefficients in <img alt="$\operatorname{GF}$" src="svgs/e8dabd4b46e75cbaa6866d30d94e06e3.svg" valign=0.0px width="23.63021594999999pt" height="11.232861749999998pt"/>, not <img alt="$\operatorname{PF}.$" src="svgs/09f485feb71728c385ea8299c839e059.svg" valign=0.0px width="29.22375884999999pt" height="11.232861749999998pt"/> Unless one want to roll one's own Galois field by choosing some particular irreducible, consider using **numlib**'s function **GaloisField**.  So replace this
+  ```python
+  PF = nl.Zmod(43)  # a prime field
+  irreducible = pl.FPolynomial([PF(5), PF(2), PF(1)], 't')  # 5+2t+t^2 in Z/43[t]
+  GF = nl.FPmod(irreducible)  # GF(43^2)
+  ```
+  with simply
+  ```python
+  GF = nl.GaloisField(43, 2) # GF(43^2)
+  ```
+  in the program above (after which there is no need to import polylib).
+
+The output of the program is: <img alt="$1927.$" src="svgs/b65c4c54020f29b0336cc1166f9c6d3d.svg" valign=0.0px width="37.44306224999999pt" height="10.5936072pt"/>
+
+So over <img alt="$\operatorname{GF}(43^2),$" src="svgs/779b607d4f5e9b80020fd0b4713a8414.svg" valign=-4.109589000000009px width="64.79472284999999pt" height="17.4904653pt"/> <img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/> has order <img alt="$1927.$" src="svgs/b65c4c54020f29b0336cc1166f9c6d3d.svg" valign=0.0px width="37.44306224999999pt" height="10.5936072pt"/>  The number of those
+points whose coordinates live in <img alt="$\operatorname{GF}(43^2)$" src="svgs/416cc4c78235cd4d312bbdf6879993c0.svg" valign=-4.109589000000009px width="60.22849964999999pt" height="17.4904653pt"/>'s prime field,
+<img alt="$\mathbb{F}_{43}$" src="svgs/9ccbd3312f29da838314377f80adaa7e.svg" valign=-2.465728650000001px width="23.15078039999999pt" height="13.7899245pt"/> &mdash; i.e., that are <img alt="$\mathbb{F}_{43}$" src="svgs/9ccbd3312f29da838314377f80adaa7e.svg" valign=-2.465728650000001px width="23.15078039999999pt" height="13.7899245pt"/>-rational &mdash; is
+<img alt="$47.$" src="svgs/32caa25fbf6c62c1e9db3b0b24fc1ba6.svg" valign=0.0px width="21.00464354999999pt" height="10.5936072pt"/> Said differently, <img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/> has <img alt="$1927$" src="svgs/e5e9463b5d52b61d0b55bf181211abc7.svg" valign=0.0px width="32.876837399999985pt" height="10.5936072pt"/> <img alt="$\mathbb{F}_{43^2}$" src="svgs/93946f515aeeffbe0ba3f22796310a3c.svg" valign=-2.9223628500000003px width="28.744480049999986pt" height="14.2465587pt"/>-rational points, <img alt="$47$" src="svgs/b3f8830b237658b2e64f9849bc647471.svg" valign=0.0px width="16.438418699999993pt" height="10.5936072pt"/>
+of which are <img alt="$\mathbb{F}_{43}$" src="svgs/9ccbd3312f29da838314377f80adaa7e.svg" valign=-2.465728650000001px width="23.15078039999999pt" height="13.7899245pt"/>-rational.
+
+Of course, <img alt="$E(\mathbb{F}_{43})$" src="svgs/3eeb4492977915c636c7cc99f368d541.svg" valign=-4.109589000000009px width="49.84029929999999pt" height="16.438356pt"/> is a subgroup of order <img alt="$47$" src="svgs/b3f8830b237658b2e64f9849bc647471.svg" valign=0.0px width="16.438418699999993pt" height="10.5936072pt"/> of
+<img alt="$E(\mathbb{F}_{43^2})$" src="svgs/6813ab33f2a8d88d187350b4de6a7d82.svg" valign=-4.109589000000009px width="56.25591344999999pt" height="16.438356pt"/> which, in turn, has order <img alt="$1927 = 41\cdot 47$" src="svgs/5d128dccdd3dce36f9c78c5fc2432ca0.svg" valign=0.0px width="99.54328724999998pt" height="10.5936072pt"/> (and
+is cyclic, it turns out).
+
+For convenience, the functionality above is built-in to numlib:
+```pycon
+>>> import numlib as nl:
+>>> GF = nl.GaloisField(43, 2) # GF(43^2)  # a finite field
+>>> E =  nl.EllCurve(GF([17]), GF([20]))   # an elliptic curve over GF
+>>> for pt in E:
+...     print(pt)
+...
+(-21-21t, -13-21t)
+(-21-21t, 13+21t)
+(-21-20t, -21+7t)
+(-21-20t, 21-7t)
+(-21-19t, -16-12t)
+(-21-19t, 16+12t)
+         ...
+```
+Note: <img alt="$E$" src="svgs/84df98c65d88c6adf15d4645ffa25e47.svg" valign=0.0px width="13.08219659999999pt" height="11.232861749999998pt"/> in the last code block is a generator that runs through all finite
+<img alt="$\operatorname{GF}$" src="svgs/e8dabd4b46e75cbaa6866d30d94e06e3.svg" valign=0.0px width="23.63021594999999pt" height="11.232861749999998pt"/>-rational points on the curve.
+
+``` pycon
+>>> len(E)
+1926
+```
+Hence, <img alt="$\#E(\mathbb{F}_{43^2}) = 1927.$" src="svgs/1bed9084d04362b70a2883bae1ff1bf0.svg" valign=-4.109589000000009px width="129.31527839999998pt" height="16.438356pt"/>
 
 ---
 
 ### References
-* Keith Conrad's [Constructing algebraic closures](https://kconrad.math.uconn.edu/blurbs/galoistheory/algclosure.pdf)
-  and [Perfect fields](https://kconrad.math.uconn.edu/blurbs/galoistheory/perfect.pdf)
+* Keith Conrad's [Constructing algebraic closures](https://kconrad.math.uconn.edu/blurbs/galoistheory/algclosure.pdf),
+  [Perfect fields](https://kconrad.math.uconn.edu/blurbs/galoistheory/perfect.pdf),
+  and [Cyclotomic extensions](https://kconrad.math.uconn.edu/blurbs/galoistheory/cyclotomic.pdf)
 * [Polynomial ring over a field](https://commalg.subwiki.org/wiki/Polynomial_ring_over_a_field)
 
 ### Todo
