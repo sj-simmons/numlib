@@ -2,6 +2,27 @@ from polylib.polynomial import Field
 from polylib import Polynomial
 import copy
 
+__author__ = "Scott Simmons"
+__version__ = "0.1"
+__status__ = "Development"
+__date__ = "06/23/21"
+__copyright__ = """
+  Copyright 2014-2021 Scott Simmons
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+"""
+__license__ = "Apache 2.0"
+
 class AlgebraicCurve:
     pass
 
@@ -22,15 +43,15 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
         >>> GF = Zmod(7)
         >>> E = EllCurve(GF(1), GF(1))
         >>> E
-        y^2 = 1 + x + x^3 over Z/7
+        y^2 = x^3 + x + 1 over Z/7
         >>> E.j  # the j-invariant for the curve
-        2 + <7>
+        1 + <7>
 
         When defining points on E, the type of the coefficient is inferred:
 
         >>> pt = E(2, 5)  # No need for E(GF(2), GF(5))
         >>> pt
-        (2, 5) on y^2 = 1 + x + x^3 over Z/7
+        (2, 5) on y^2 = x^3 + x + 1 over Z/7
         >>> print(pt)
         (2, 5)
         >>> print(-pt)
@@ -50,20 +71,20 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
 
         >>> E(0,0) # doctest: +ELLIPSIS
         Traceback (most recent call last):
-        ValueError: (0, 0) = [0: 0: 1] is not on y^2 = 1 + x + x^3 ...
+        ValueError: (0, 0) = [0: 0: 1] is not on y^2 = x^3 + x + 1...
 
         Find all points on E:
 
-        >>> from itertools import product
-        >>> for pair in product(GF, GF):
+        >>> from numlib import iproduct
+        >>> for pair in iproduct(GF, GF):
         ...     try:
         ...         print(E(*pair))
         ...     except:
         ...         pass
         (0, 1)
-        (0, 6)
         (2, 2)
         (2, 5)
+        (0, 6)
 
         Alternatively, use a faster builtin method:
 
@@ -93,13 +114,13 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
     if isinstance(b,Polynomial) and b.x.find('(') < 0 and b.x.find(')') < 0:
         bb.x  = '(' + b.x + ')'
 
-    f_ =  Polynomial((bb, aa, 0*one, one), 'x', spaces = False)
+    f_ =  Polynomial((bb, aa, 0*one, one), 'x', spaces = True, increasing = False)
 
     class EllipticCurve(type):
 
-        f =  Polynomial((b, a, 0*one, one), 'x')
+        f =  Polynomial((b, a, 0*one, one), 'x', increasing = False)
         disc = -16 * (4 * a ** 3 + 27 * b ** 2)
-        j = - 432 * a ** 3 / disc if disc != one * 0 else None
+        j = -110592 * a ** 3 / disc if disc != one * 0 else None
 
         def __iter__(self):
             """Yield the finite points of the curve."""
@@ -120,6 +141,18 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
                         for x in fs[f]:
                             for y in  y2s[y2]:
                                 yield self(x, y)
+
+        #@classmethod
+        #def random_point(self):
+        #    F = (a*b).__class__
+        #    if F.char() % 4 == 3
+        #        for x in F:
+        #            fx = self.f.of(x)
+        #            if fx ** (p - 1) // 2 == 1
+        #            y = self.f.of(x) ** (p + 1) // 4
+        #        rand
+        #    else:
+        #        return NotImplemented
 
         @classmethod
         def __repr__(self):
@@ -157,8 +190,8 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
             if z != 0*one:
                 if (y/z)**2 != f_.of(x/z):
                     raise ValueError(
-                        (f"({x/z}, {y/z}) = [{x}: {y}: {z}] not on y^2 = {f_}: "
-                        f"y^2 = {repr((y/z)**2)} != {repr(f_.of(x/z))}")
+                        (f"({x/z}, {y/z}) = [{x}: {y}: {z}] is not on y^2 = {f_}: "
+                        f"y^2 = {(y/z)**2} != {f_.of(x/z)}")
                     )
             else:
                 if not (x == 0 and y != 0):
@@ -233,6 +266,9 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
                 return self
             else:
                 return self.__class__(self.co[0], -self.co[1], self.co[2])
+
+        def __sub__(self: EllCurve, other: EllCurve):
+            return self.__add__ (-other)
 
         def __str__(self):
             if self.co[2] == 0:

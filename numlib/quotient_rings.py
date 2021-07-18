@@ -1,8 +1,28 @@
 from copy import copy
-from itertools import product
 from typing import NewType, Type
-from numlib import isprime, gcd_, xgcd
+from numlib import isprime, gcd, xgcd, iproduct
 from polylib import Polynomial, FPolynomial
+
+__author__ = "Scott Simmons"
+__version__ = "0.1"
+__status__ = "Development"
+__date__ = "06/23/21"
+__copyright__ = """
+  Copyright 2014-2021 Scott Simmons
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+"""
+__license__ = "Apache 2.0"
 
 ModularInt = NewType("ModularInt", int)
 
@@ -42,7 +62,7 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
         113 + <143>
         >>> Zn(3)/Zn(4)
         108 + <143>
-        >>> Zn(13)**-1  # Zn has zero divisors
+        >>> Zn(13)**-1  # Z/13 has zero divisors
         Traceback (most recent call last):
         AssertionError: 13 is not invertible modulo 143
         >>> Zn(3)/Zn(11)
@@ -54,6 +74,8 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
         120
         >>> Zn.isField()
         False
+        >>> Zn(142) == -1
+        True
 
         Example 2: the Galois field of integers modulo a prime
 
@@ -88,10 +110,21 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
 
         def __new__(cls, value: int):
             #return super(cls, cls).__new__(cls, value % n)
+
+            #value = value % n
+            #value = value - n if negatives and n//2 + 1 <= value < n else value
+            # below is equivalent to above but doesn't take mod unless necessary;
+            # does not # appear to be faster
             if negatives:
-               return super(Z_Mod_, cls).__new__(cls, value % n - n  if n//2 + 1 <= value % n < n else value % n)
-            else:
-               return super(Z_Mod_, cls).__new__(cls, value % n)
+                half = - ((n - 1) // 2)
+                if value < half or value >  - half + (n + 1) % 2:
+                    value = value % n
+                    if value >= n//2 + 1:
+                        value = value - n
+            elif value < 0 or value >= n:
+                value = value % n
+
+            return super(Z_Mod_, cls).__new__(cls, value)
 
         #def __new__(metacls, cls, bases, classdict, value):
         #    return super(metacls, metacls).__new__(metacls, value % n)
@@ -135,12 +168,12 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
             else:
                 return NotImplemented
 
-        def __pow__(self, n):
-            if isinstance(n, int):
-                if n >= 0:
-                    return self.__class__(super(Z_Mod_, self).__pow__(n))
+        def __pow__(self, m):
+            if isinstance(m, int):
+                if m >= 0:
+                    return self.__class__(pow(int(self), m, n))
                 else:
-                    return self.__class__(1)/self.__class__(super(Z_Mod_, self).__pow__(-n))
+                    return self.__class__(1)/self.__class__(pow(int(self), -m, n))
             else:
                 return NotImplemented
 
@@ -152,6 +185,10 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
         def __rtruediv__(self, other):
             return self.__class__(other).__truediv__(self)
 
+        def __eq__(self, other):
+            return (int(self) - int(other)) % n == 0
+            #return NotImplemented
+
         def __repr__(self):
             return super(Z_Mod_, self).__repr__() + " + <" + repr(n) +">"
 
@@ -161,11 +198,12 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
     class Z_ModIterable(type):
 
         def __iter__(self, units_: bool = False):
-            for i in range(n//2 + 1, n//2 + n + 1) if negatives else range(n):
+            #for i in range(n//2 + 1, n//2 + n + 1) if negatives else range(n):
+            for i in range(- ((n - 1) // 2) , n - ((n - 1) // 2) ) if negatives else range(n):
                 if i == 0 and units_:
                     continue
                 #if not units and not prime or gcd(i, n) == 1:
-                if not units_ or self.__class__ == 'ZModPrime' or gcd_(i, n) == 1:
+                if not units_ or self.__class__ == 'ZModPrime' or gcd(i, n) == 1:
                     #yield Z_Mod_(i)
                     yield self(i)
 
@@ -194,7 +232,7 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
     class Z_Mod(Z_Mod_, metaclass = Z_ModIterable):
 
         def isinvertible(self):
-            return self != 0 and gcd_(self, n) == 1
+            return self != 0 and gcd(self, n) == 1
 
     class ZModPrime(Z_Mod_, metaclass = Z_ModIterable):
 
@@ -207,6 +245,9 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
         def isinvertible(self):
             return self != 0
 
+        def __hash__(self):
+            return hash((int(self), n))
+
         @classmethod
         def isField(self) -> bool:
             return True
@@ -216,18 +257,6 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
             return n
 
     return ZModPrime if prime or isprime(n) else Z_Mod
-
-    #else:
-
-    #    #import gmpy2
-
-    #    #class MPIntegersMod(Integral):
-    #    class MPIntegersMod():
-
-    #        def __init__(self, m):
-    #            pass
-
-    #    return MPIntegersMod
 
 def Pmod(monic: Polynomial) \
         -> Type[Polynomial]:
@@ -269,7 +298,7 @@ def Pmod(monic: Polynomial) \
     class Pmod__(type):
 
         def __iter__(self):
-            for coeffs in product(fpoly[0].__class__, repeat=fpoly.degree()):
+            for coeffs in iproduct(fpoly[0].__class__, repeat=fpoly.degree()):
                 yield(self(coeffs))
 
         @classmethod
@@ -289,7 +318,7 @@ def Pmod(monic: Polynomial) \
 
     class Pmod_(Polynomial, metaclass = Pmod__):
 
-        def __init__(self, coeffs, x = None, spaces = True):
+        def __init__(self, coeffs, x = None, spaces = True, increasing = False):
 
             if not (isinstance(coeffs, Polynomial) or hasattr(type(coeffs), '__iter__')):
                 raise ValueError(
@@ -313,12 +342,23 @@ def Pmod(monic: Polynomial) \
             poly = Polynomial([one*elt for elt in coeffs], x = monic.x, spaces = monic.spaces) % monic
             super().__init__(poly._coeffs, x = x if x else monic.x, spaces =  monic.spaces)
 
+        def __eq__(self, other):
+            return ((self - other) % monic)._degree is None
+
+
+        def __hash__(self):
+            return hash((self._coeffs, monic._coeffs))
+
         def __repr__(self):
             monic_ = copy(monic)
             monic_.x = self.x
             nomic_.x_unwrapped = self.x_unwrapped
             monic_.spaces = self.spaces
-            return f"<{irred}>" if self == 0  else f"{self} + <{monic_}>"
+            monic_.increasing = self.increasing
+            s = str(monic_)
+            if s[0] == "(" and s[-1] == ")":
+                s = s[1:-1]
+            return f"<{irred}>" if self._degree is None  else f"{self} + <{s}>"
 
     return Pmod_
 
@@ -434,7 +474,7 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
         polynomial p1*p2 = (2-x+x^3)(2+x^2). However, each factor is irr-
         educible in Z/5[x], and the factors are relatively prime:
 
-        >>> from numlib import xgcd, lcm_
+        >>> from numlib import xgcd, lcm
         >>> g, m1 , m2 = xgcd(p1, p2)
         >>> g
         FPolynomial((1 + <5>,))
@@ -497,7 +537,7 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
 
         The order of t is:
 
-        >>> order(t) == lcm_(5**3-1, 5**2-1) == 744
+        >>> order(t) == lcm(5**3-1, 5**2-1) == 744
         True
 
         Example 4: extension of an extension field
@@ -517,10 +557,10 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
         >>> from numlib import GaloisField
         >>> GF = GaloisField(5,3)
         >>> GF
-        Z/5[t]/<2+t^2+t^3>
+        Z/5[t]/<t^3+t^2+2>
         >>> t = GF.t()
         >>> t**3
-        -2-t^2 + <2+t^2+t^3>
+        -t^2-2 + <t^3+t^2+2>
 
         >>> #F = FPmod(3-t)
         >>> #F
@@ -538,7 +578,7 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
     class FPmod__(type):
 
         def __iter__(self):
-            for coeffs in product(fpoly[0].__class__, repeat=fpoly.degree()):
+            for coeffs in iproduct(fpoly[0].__class__, repeat=fpoly.degree()):
                 yield(self(coeffs))
 
         @classmethod
@@ -566,7 +606,7 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
 
     class FPmod_(FPolynomial, metaclass = FPmod__):
 
-        def __init__(self, coeffs, x = None, spaces = True):
+        def __init__(self, coeffs, x = None, spaces = True, increasing = False):
 
             if not (isinstance(coeffs, Polynomial) or hasattr(type(coeffs), '__iter__')):
                 raise ValueError(
@@ -587,16 +627,25 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
             if fpoly._degree is None:
                 raise ValueError("no need to quotient by <0>")
             one = (fpoly**0)[0]
-            poly = FPolynomial([one*elt for elt in coeffs], x = fpoly.x, spaces = fpoly.spaces) % fpoly
-            super().__init__(poly._coeffs, x = x if x else fpoly.x, spaces = fpoly.spaces)
+            poly = FPolynomial([one*elt for elt in coeffs], x = fpoly.x, spaces = fpoly.spaces, increasing = fpoly.increasing) % fpoly
+            super().__init__(poly._coeffs, x = x if x else fpoly.x, spaces = fpoly.spaces, increasing = fpoly.increasing)
+
+        def __eq__(self, other):
+            return ((self - other) % fpoly)._degree is None
+
+        def __hash__(self):
+            return hash((self._coeffs, fpoly._coeffs))
 
         def __repr__(self):
             irred = copy(fpoly)
             irred.x = self.x
             irred.x_unwrapped = self.x_unwrapped
             irred.spaces = self.spaces
-            #return str(self) + " mod " + str(irred)
-            return f"<{irred}>" if self == 0  else f"{self} + <{irred}>"
+            irred.increasing = self.increasing
+            s = str(irred)
+            if s[0] == "(" and s[-1] == ")":
+                s = s[1:-1]
+            return f"<{irred}>" if self._degree is None  else f"{self} + <{s}>"
 
         def __truediv__(self, other):
             if isinstance(other, int):
@@ -610,15 +659,15 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
                 return NotImplemented
 
         def __rtruediv__(self, other):
-            return self.__class__([other], self.x, self.spaces) / self
+            return self.__class__([other], self.x, self.spaces, self.increasing) / self
 
-        def __pow__(self, n):
-            if n < 0:
+        def __pow__(self, m):
+            if m < 0:
                 assert self != 0, "cannot invert 0"
-                return super(FPmod_, 1/self).__pow__(-n)
+                return super(FPmod_, 1/self).__pow__(-m)
             else:
                 #print("here",self.__class__.__name__)
-                return super(FPmod_, self).__pow__(n)
+                return super(FPmod_, self).__pow__(m)
 
     return FPmod_
 
@@ -661,32 +710,32 @@ def GaloisField(p: int, r: int = 1, negatives = True) -> Type[FPolynomial]:
 
         >>> GF = GaloisField(5, 3)
         >>> GF   # elements are cubic polynomials over Z/5
-        Z/5[t]/<2+t^2+t^3>
+        Z/5[t]/<t^3+t^2+2>
 
         To instantiate an element of Z/5[t]/<2 + t^2 + t^3> , we need to
         specify its coefficients as a polynomial. One way to to this is:
 
         >>> GF([3, 4, 17])
-        -2-t+2t^2 + <2+t^2+t^3>
+        2t^2-t-2 + <t^3+t^2+2>
 
         Alternatively, one can use a indeterminant:
 
         >>> t =  GF([0, 1])
         >>> -2 - t + 2*t**2
-        -2-t+2t^2 + <2+t^2+t^3>
+        2t^2-t-2 + <t^3+t^2+2>
 
         For convenience, the indeterminant is already available:
 
         >>> t = GF.t()
         >>> -2 - t + 2*t**2
-        -2-t+2t^2 + <2+t^2+t^3>
+        2t^2-t-2 + <t^3+t^2+2>
 
         More notes:
 
         GF = GaloisField(p, r) is a generator for the entire field:
 
         >>> print(', '.join(str(elt) for elt in GF)) # doctest: +ELLIPSIS
-        -2-2t-2t^2, -2-2t-t^2, -2-2t, ...
+        -2t^2-2t-2, -2t^2-2t-1, -2t^2-t-2, ...
 
         For all p and r (including r=1), t is actually a generator for
         the multiplicative group of units of GF = GaloisField(p, r):
@@ -709,19 +758,19 @@ def GaloisField(p: int, r: int = 1, negatives = True) -> Type[FPolynomial]:
         >>> from polylib import FPolynomial
         >>> f = FPolynomial([1 + t**2, 2*t**0])
         >>> f
-        FPolynomial(((1+t^2) + <(2+t^2+t^3)>, (2) + <(2+t^2+t^3)>))
+        FPolynomial(((t^2+1) + <t^3+t^2+2>, (2) + <t^3+t^2+2>))
         >>> print(f)
-        (1+t^2) + (2)x
+        (t^2+1) + (2)x
 
         But notice that we must use t**0; i.e., this is not the same:
 
         >>> FPolynomial([1 + t**2, 2])
-        FPolynomial(((1+t^2) + <(2+t^2+t^3)>, 2))
+        FPolynomial(((t^2+1) + <t^3+t^2+2>, 2))
 
         Perhaps more safely, we can do this:
 
         >>> FPolynomial([GF([1, 0, 1]), GF([2])])
-        FPolynomial((1+t^2 + <2+t^2+t^3>, 2 + <2+t^2+t^3>))
+        FPolynomial((t^2+1 + <t^3+t^2+2>, 2 + <t^3+t^2+2>))
 
         Alternatively, we can create an indeterminant for x:
 
@@ -729,14 +778,14 @@ def GaloisField(p: int, r: int = 1, negatives = True) -> Type[FPolynomial]:
         >>> x = Polynomial([0, 1])
         >>> p = GF([1, 0, 1], '(t)') * x**0 + GF([2], '(t)') * x
         >>> p
-        Polynomial(((1+t^2) + <(2+t^2+t^3)>, (2) + <(2+t^2+t^3)>))
+        Polynomial(((t^2+1) + <t^3+t^2+2>, (2) + <t^3+t^2+2>))
         >>> print(p)
-        (1+t^2) + (2)x
+        (t^2+1) + (2)x
 
         or, this:
 
         >>> print((1 + t**2)*x**0 + (2*t**0)*x)
-        (1+t^2) + (2)x
+        (t^2+1) + (2)x
 
         More examples:
 
@@ -746,13 +795,13 @@ def GaloisField(p: int, r: int = 1, negatives = True) -> Type[FPolynomial]:
 
         >>> GF = GaloisField(17, negatives = False)
         >>> GF
-        Z/17[t]/<14+t>
+        Z/17[t]/<t+14>
         >>> GF([10])  # note the you need brackets around the 10
-        10 + <14+t>
+        10 + <t+14>
         >>> print(GF([10]))
         10
         >>> GF([10])**-1
-        12 + <14+t>
+        12 + <t+14>
         >>> print(GF([11]) + GF([12]))
         6
         >>> print(GF([11]) * GF([12]))
@@ -766,7 +815,7 @@ def GaloisField(p: int, r: int = 1, negatives = True) -> Type[FPolynomial]:
         all units), you may end up doing:
 
         >>> 9*t**0
-        9 + <14+t>
+        9 + <t+14>
 
         Alternatively, you may want simply:
 
@@ -780,34 +829,34 @@ def GaloisField(p: int, r: int = 1, negatives = True) -> Type[FPolynomial]:
 
         >>> GF = GaloisField(2, 4)
         >>> print(GF)
-        Z/2[t]/<1+t^3+t^4>
+        Z/2[t]/<t^4+t^3+1>
 
         One can define elements of GF like this:
 
         >>> GF([1, 2, 345, 0, 0, 0, 1])
-        t+t^3 + <1+t^3+t^4>
+        t^3+t + <t^4+t^3+1>
 
         Or, perhaps more conveniently, by using an indeter-
         minant
 
         >>> t = GF.t() # same as t=GF([0, 1])
         >>> 1 + 2*t + 345*t**2 + t**6
-        t+t^3 + <1+t^3+t^4>
+        t^3+t + <t^4+t^3+1>
 
         One can find all generators for the unit group:
 
-        >>> from itertools import product
+        >>> from numlib import iproduct
         >>> def order(x):
         ...     for j in range(1, 2 ** 4):
         ...         if x**j == 1:
         ...             return j
         >>> generators = []
-        >>> for coeffs in product(Zmod(2), repeat=4):
+        >>> for coeffs in iproduct(Zmod(2), repeat=4):
         ...     elt = GF(coeffs)
         ...     if order(elt) == 2 ** 4 - 1:
         ...         generators.append(str(elt))
         >>> print(', '.join(generators))
-        t^2, t^2+t^3, t, t+t^2, t+t^2+t^3, 1+t^3, 1+t^2+t^3, 1+t+t^2
+        t, t^2, t^2+t, t^2+t+1, t^3+t^2, t^3+t^2+t, t^3+1, t^3+t^2+1
 
         Since t is a generator, 1 + t^3 + t^4 is a primitive polynomial
         for GF(2^4).
@@ -821,7 +870,7 @@ def GaloisField(p: int, r: int = 1, negatives = True) -> Type[FPolynomial]:
     if r <= 0:
         raise ValueError(f"r must be a positive integer, not {r}")
 
-    t = FPolynomial([0, Zmod(p, negatives = negatives)(1)], 't', spaces = False)
+    t = FPolynomial([0, Zmod(p, negatives = negatives)(1)], 't', spaces = False, increasing = False)
     if r == 1:
         # Find the first generator of (Z/p)*:
         a = 1
@@ -866,6 +915,13 @@ def GaloisField(p: int, r: int = 1, negatives = True) -> Type[FPolynomial]:
              irred = -4 - t + t**2
         elif r == 3:
              irred = -11 - t + t**3
+        else:
+            return NotImplemented
+    elif p == 31:
+        if r == 2:
+             irred = 3 - 7*t + t**2
+        elif r == 3:
+             irred = -12 - 11*t + t**3
         else:
             return NotImplemented
     elif p == 43:

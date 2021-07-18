@@ -6,7 +6,7 @@ import math
 import decimal
 import functools
 import operator
-from itertools import combinations
+from itertools import combinations, cycle, product, tee
 from typing import List, Tuple, TYPE_CHECKING, cast, TypeVar, Generator
 if TYPE_CHECKING:
     from polylib import FPolynomial
@@ -36,16 +36,16 @@ __license__ = "Apache 2.0"
 #    if b == 0:
 #        return abs(a)
 #
-#    return abs(b) if a % b == 0 else gcd_(b, a % b)
+#    return abs(b) if a % b == 0 else gcd(b, a % b)
 
 Euclidean = TypeVar('Euclidean', int, 'FPolynomial') # Both Euclidean rings
 
-def gcd_(a: Euclidean, b: Euclidean) -> Euclidean:
+def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
     """Return a greatest common divisor of a and b.
 
     If the arguments are ints, this returns either the usual, positive
     greatest common divisor, or its negative. So, recover the usual gcd
-    with abs(gcd_(a,b).
+    with abs(gcd(a,b).
 
     For polynomials over a field, greatest common divisors are defined
     only up to multiplication by a unit in the field; this function
@@ -55,7 +55,7 @@ def gcd_(a: Euclidean, b: Euclidean) -> Euclidean:
 
         For integers:
 
-        >>> gcd_(15, -35)
+        >>> gcd(15, -35)
         -5
 
         Polynomials are assumed to be defined using the polylib library:
@@ -69,34 +69,33 @@ def gcd_(a: Euclidean, b: Euclidean) -> Euclidean:
         >>> print('p1 = '+str(p1)); print('p2 = '+str(p2))
         p1 = 14 + 26x + 28x^2 + 40x^4 + 19x^5 + 37x^6
         p2 = 39 + 3x + 13x^2 + 31x^3 + 12x^4
-        >>> g = gcd_(p1, p2)
+        >>> g = gcd(p1, p2)
         >>> print(g)  # a gcd
         30 + 35x
         >>> print(g * g[-1]**-1)  # the unique monic gcd
         7 + x
 
         >>> from numlib import GaloisField
-        >>> GF = GaloisField(2,3)
+        >>> GF = GaloisField(2, 3)
         >>> t = GF.t()
         >>> p1 = 33 * (t - 3) * (7 * t + 6) * (5 * t**4 - 9)
         >>> p2 = 100 * (t - 8) * (7 * t + 6) * (t**2 - 11)
-        >>> print(gcd_(p1, p2))
-        1 + t
+        >>> print(gcd(p1, p2))
+        t+1
 
-        >>> #GF = GaloisField(43)
-        >>> #x = FPolynomial([GF([-3]), GF([1])])
-        >>> #p1 = 33 * (x - 3) * (7 * x + 6) * (5*x**4 - 9)
-        >>> #p2 = 100 * (x - 8) * (7 * x + 6) * (x**2 - 11)
-        >>> #print(gcd_(p1, p2))
-        -4 + <-3 + t>
-
+        >>> GF = GaloisField(43)
+        >>> t = GF.t()
+        >>> p1 = 33 * (t - 3) * (7 * t + 6) * (5*t**4 - 9)
+        >>> p2 = 100 * (t - 8) * (7 * t + 6) * (t**2 - 11)
+        >>> print(gcd(p1, p2))
+        -4
     """
     if b == 0:
         return a
 
-    return b if a % b == 0 else gcd_(b, a % b)
+    return b if a % b == 0 else gcd(b, a % b)
 
-def lcm_(a: Euclidean, b: Euclidean) -> Euclidean:
+def lcm(a: Euclidean, b: Euclidean) -> Euclidean:
     """Return a least common multiple of a and b.
 
     Examples:
@@ -107,10 +106,10 @@ def lcm_(a: Euclidean, b: Euclidean) -> Euclidean:
         >>> x = FPolynomial([0, GF(1)])  # indeterimant for Z/34Z[x]
         >>> p1 = 33 * (x - 3) * (7 * x + 6) * (5*x**3 - 9)
         >>> p2 = 100 * (x - 8) * (7 * x + 6) * (x**2 - 11)
-        >>> print(lcm_(p1,p2))
+        >>> print(lcm(p1,p2))
         14 + 35x + x^2 + 4x^3 + x^4 + 23x^5 + 20x^6 + 12x^7 + 40x^8
     """
-    return a * b // gcd_(a,b)
+    return a * b // gcd(a,b)
 
 def xgcd(a: Euclidean, b: Euclidean) -> Tuple[Euclidean, ...]:
     """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = r*a + s*b.
@@ -192,13 +191,15 @@ def sieve(n: int = 1000000) -> Tuple[int, ...]:
                 sieve[i] = False
     return tuple(primes)
 
-def truefactor(n:int) -> int:
+def leastdivisor(n:int) -> int:
     """Return smallest prime factor > 1 of n > 1.
 
-    >>> truefactor(143)
-    11
-    >>> truefactor(2027)
-    2027
+    Examples:
+
+        >>> leastdivisor(143)
+        11
+        >>> leastdivisor(2027)
+        2027
     """
     assert n > 1
     for p in sieve(int(decimal.Decimal(n).sqrt()+1)):
@@ -211,24 +212,28 @@ def istrueprime(n:int) -> int:
 
     This is slow for very large n.
 
-    >>> istrueprime(2027)
-    True
-    >>> istrueprime(2027*2017)
-    False
+    Examples:
+
+        >>> istrueprime(2027)
+        True
+        >>> istrueprime(2027*2017)
+        False
     """
-    return n > 1 and truefactor(n) == n
+    return n > 1 and leastdivisor(n) == n
 
 def isprime(n: int) -> int:
     """Return True/False according to whether n is likely prime.
 
     Uses a variety of pseudoprime tests. This is fast.
 
-    >>> isprime(2027)
-    True
-    >>> isprime(2027*2017)
-    False
-    >>> isprime(258001471497710271176990892852404413747)
-    True
+    Examples:
+
+        >>> isprime(2027)
+        True
+        >>> isprime(2027*2017)
+        False
+        >>> isprime(258001471497710271176990892852404413747)
+        True
     """
     assert n >= 1
     if n in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]:
@@ -264,8 +269,10 @@ def isprimeE(n: int, b: int) -> bool:
 def factor_(n: int) -> int:
     """Return, with fair likelihood of success, a prime factor of n.
 
-    >>> factor_(8) == factor_(4) == 2
-    True
+    Example:
+
+        >>> factor_(8) == factor_(4) == 2
+        True
     """
 
     assert n > 1
@@ -280,10 +287,12 @@ def factor_(n: int) -> int:
 def factor(n: int) -> List[int]:
     """Return, with fair likelihood of success, the prime factors of n.
 
-    >>> factor(2017*2027*12353948231)  # product of primes
-    [2017, 2027, 12353948231]
-    >>> factor(2017**4*(2027*12353948231)**2)
-    [2017, 2017, 2017, 2017, 2027, 2027, 12353948231, 12353948231]
+    Examples:
+
+        >>> factor(2017*2027*12353948231)  # product of primes
+        [2017, 2027, 12353948231]
+        >>> factor(2017**4*(2027*12353948231)**2)
+        [2017, 2017, 2017, 2017, 2027, 2027, 12353948231, 12353948231]
     """
 
     assert n > 1
@@ -291,7 +300,10 @@ def factor(n: int) -> List[int]:
         return [n]
     fact = factor_(n)
     assert fact != 1, "Unable to factor " + str(n)
-    facts = factor(n // fact) + factor(fact)
+    if isprime(fact):
+        facts = [fact] + factor(n // fact)
+    else:
+        facts = factor(fact) + factor(n // fact)
     facts.sort()
     return facts
 
@@ -303,10 +315,12 @@ def factorPR(n: int) -> int:
     otherwise.  Note: This method will occasionally fail to find a
     non-trivial factor when one exists.
 
-    >>> factorPR(2017*2027*12353948231)  # product of primes
-    2017
-    >>> factorPR(8) == factorPR(4) == 2  # fails
-    False
+    Examples:
+
+        >>> factorPR(2017*2027*12353948231)  # product of primes
+        2017
+        >>> factorPR(8) == factorPR(4) == 2  # fails
+        False
     """
     numsteps = 2 * int(decimal.Decimal(n).sqrt().sqrt())
     for slow in [2, 3, 4, 6]:
@@ -341,7 +355,7 @@ def truephi(n: int) -> int:
     phi_ = 1
     prevfact = 1
     while n > 1:
-        fact = truefactor(n)
+        fact = leastdivisor(n)
         n //= fact
         if fact == prevfact:
             phi_ *= fact
@@ -381,18 +395,47 @@ def phi(n: int) -> int:
 def mu(n: int) -> int:
     """Return the value of the Moebius function on n.
 
-    >>> mu(3*5*2)
-    -1
-    >>> mu(3*5*2*17)
-    1
-    >>> mu(3*3*5*2)
-    0
-    >>> mu(1)
-    1
-    >>> mu(5)
-    -1
-    >>> mu(2**10-1)
-    -1
+    Examples:
+
+        >>> mu(3*5*2)
+        -1
+        >>> mu(3*5*2*17)
+        1
+        >>> mu(3*3*5*2)
+        0
+        >>> mu(1)
+        1
+        >>> mu(5)
+        -1
+        >>> mu(2**10-1)
+        -1
+    """
+    if n == 1:
+        return 1
+    else:
+        facts = factor(n)
+        len_ = len(facts)
+        if len(set(facts)) < len_:
+            return 0
+        return (-1)**len_
+
+def truemu(n: int) -> int:
+    """Return the value of the Moebius function on n.
+
+    Examples:
+
+        >>> truemu(3*5*2)
+        -1
+        >>> truemu(3*5*2*17)
+        1
+        >>> truemu(3*3*5*2)
+        0
+        >>> truemu(1)
+        1
+        >>> truemu(5)
+        -1
+        >>> truemu(2**10-1)
+        -1
     """
     if n == 1:
         return 1
@@ -400,10 +443,10 @@ def mu(n: int) -> int:
         #return -reduce(add, [mu(d) for d in range(2, n) if n % d == 0], 1)
         # below is faster (for all n?)
         count = 1
-        prevfact = truefactor(n)
+        prevfact = leastdivisor(n)
         n //= prevfact
         while n > 1:
-            factor = truefactor(n)
+            factor = leastdivisor(n)
             if prevfact == factor:
                 return 0
             count += 1
@@ -411,20 +454,52 @@ def mu(n: int) -> int:
             prevfact = factor
         return (-1)**count
 
-def divisors(n: int) -> Generator[int]:
+def divisors_(n: int) -> Generator[int]:
     """Return all divisors greater than 1.
 
     Examples:
 
-       >>> list(divisors(7))
-       [7]
-       >>> list(divisors(12))
-       [2, 3, 6, 4, 12]
+        >>> list(divisors(7))
+        [7]
+        >>> list(divisors(12))
+        [2, 3, 4, 6, 12]
     """
     facts = factor(n)
     for r in range(1, len(facts)+1):
         for fact in set(combinations(facts, r)):
-            yield functools.reduce(operator.mul, fact, 1)
+            yield functools.reduce(operator. mul, fact, 1)
+
+def divisors(n: int) -> list[int]:
+    """Return sorted, increasing list of divisors > 1."""
+
+    return sorted(list(divisors_(n)))
+
+def addorder_(element: object, possible_orders: List[int]) -> int:
+    """helper for addorder
+
+    Args:
+
+        element: The element of an additive group.
+
+        possible_orders: List of possible orders sorted and in
+            increasing order.
+
+    Returns:
+
+        (int). The additive order.
+    """
+    identity = 0*element
+    accum = copy.copy(element)
+    if element == identity:
+        return 1
+    prev_divisor = 1
+    for divisor in possible_orders[:-1]:
+        accum += (divisor - prev_divisor) * element
+        if accum == identity:
+            return divisor
+        prev_divisor = divisor
+    return possible_orders[-1]
+
 
 def addorder(element: object, exponent = None):
     """Return the additive order of element.
@@ -462,16 +537,16 @@ def addorder(element: object, exponent = None):
         >>> from polylib import FPolynomial
         >>> F = GaloisField(7, 3)
         >>> F  # GaloisField of order 7^3
-        Z/7[t]/<-3 + 3t^2 + t^3>
+        Z/7[t]/<t^3+3t^2-3>
         >>> t = F([0,1])  # generator of the unit group of GF(7^3)
         >>> E = EllCurve(t+1, t**2)
         >>> E  # An elliptic curve over GF(7^3)
-        y^2 = (t^2) + (1 + t)x + x^3 over Z/7[t]/<-3 + 3t^2 + t^3>
+        y^2 = x^3 + (t+1)x + (t^2) over Z/7[t]/<t^3+3t^2-3>
 
         Let us check that the j-invariant is non-zero:
 
         >>> E.j
-        1 + 2t^2 + <-3 + 3t^2 + t^3>
+        t^2-3 + <t^3+3t^2-3>
 
         Given that (2+2t+2t^2, 1+3t-t^2) is a point on the curve, let
         us compute its order:
@@ -493,15 +568,7 @@ def addorder(element: object, exponent = None):
     identity = 0*element
     accum = copy.copy(element)
     if exponent:
-        if element == identity:
-            return 1
-        prev_divisor = 1
-        for divisor in sorted(list(divisors(exponent))[:-1]):
-            accum += (divisor - prev_divisor) * element
-            if accum == identity:
-                return divisor
-            prev_divisor = divisor
-        return exponent
+        return addorder_(element, divisors(exponent)[:-1])
     else:
         order = 1
         while accum != identity:
@@ -584,7 +651,7 @@ def mulorder(element, exponent = None):
         if element == identity:
             return 1
         prev_divisor = 1
-        for divisor in sorted(list(divisors(exponent))[:-1]):
+        for divisor in divisors(exponent)[:-1]:
             accum *= element ** (divisor - prev_divisor)
             if accum == identity:
                 return divisor
@@ -608,6 +675,38 @@ def unserialize(filename, directory = '.'):
     if not os.path.exists(directory+'/'+filename):
         raise ValueError(f"file {directory}/{filename} does not exist")
     return pickle.load(open(directory+'/'+filename, "rb"))
+
+def iproduct(*iterables, repeat=1):
+    """Cartesian product of large or infinite iterables (per MarkCBell)
+
+    Examples:
+
+        >>> print(list(iproduct(range(2), range(2))))
+        [(0, 0), (1, 0), (0, 1), (1, 1)]
+        >>> print(list(iproduct(range(2), repeat=2)))
+        [(0, 0), (1, 0), (0, 1), (1, 1)]
+        >>> list1 = list(iproduct(range(2), range(2), repeat=2))
+        >>> list2 = list(iproduct(range(2), repeat=4))
+        >>> list1 == list2
+        True
+    """
+
+    iterables = [item for row in zip(*(tee(iterable, repeat) for iterable in iterables)) for item in row]
+    N = len(iterables)
+    saved = [[] for _ in range(N)]  # All the items that we have seen of each iterable.
+    exhausted = set()  # The set of indices of iterables that have been exhausted.
+    for i in cycle(range(N)):
+        if i in exhausted:  # Just to avoid repeatedly hitting that exception.
+            continue
+        try:
+            item = next(iterables[i])
+            yield from product(*saved[:i], [item], *saved[i+1:])  # Finite product.
+            saved[i].append(item)
+        except StopIteration:
+            exhausted.add(i)
+            if not saved[i] or len(exhausted) == N:  # Product is empty or all iterables exhausted.
+                return
+    yield ()  # There are no iterables.
 
 if __name__ == "__main__":
 
