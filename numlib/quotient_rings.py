@@ -131,49 +131,50 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
 
         def __add__(self, other):
             if isinstance(other, int):
-                return self.__class__(super(Z_Mod_, self).__add__(other))
+                return type(self)(super().__add__(other))
             else:
                 return NotImplemented
 
         def __radd__(self, other):
             if isinstance(other, int):
-                return self.__class__(super(Z_Mod_, self).__radd__(other))
+                #return type(self)(super().__radd__(other))
+                return type(self)(super().__radd__(other))
             else:
                 return NotImplemented
 
         def __neg__(self):
-            return self.__class__(super(Z_Mod_, self).__neg__())
+            return type(self)(super().__neg__())
 
         def __sub__(self, other):
             if isinstance(other, int):
-                return self.__class__(super(Z_Mod_, self).__sub__(other))
+                return type(self)(super().__sub__(other))
             else:
                 return NotImplemented
 
         def __rsub__(self, other):
             if isinstance(other, int):
-                return self.__class__(super(Z_Mod_, self).__rsub__(other))
+                return type(self)(super().__rsub__(other))
             else:
                 return NotImplemented
 
         def __mul__(self, other):
             if isinstance(other, int):
-                return self.__class__(super(Z_Mod_, self).__mul__(other))
+                return type(self)(super().__mul__(other))
             else:
                 return NotImplemented
 
         def __rmul__(self, other):
             if isinstance(other, int):
-                return self.__class__(super(Z_Mod_, self).__rmul__(other))
+                return type(self)(super().__rmul__(other))
             else:
                 return NotImplemented
 
         def __pow__(self, m):
             if isinstance(m, int):
                 if m >= 0:
-                    return self.__class__(pow(int(self), m, n))
+                    return type(self)(pow(int(self), m, n))
                 else:
-                    return self.__class__(1)/self.__class__(pow(int(self), -m, n))
+                    return type(self)(1)/type(self)(pow(int(self), -m, n))
             else:
                 return NotImplemented
 
@@ -183,17 +184,17 @@ def Zmod(n: int, mp=False, prime=False, negatives=False) -> Type[int]:
             return self * inv
 
         def __rtruediv__(self, other):
-            return self.__class__(other).__truediv__(self)
+            return type(self)(other).__truediv__(self)
 
         def __eq__(self, other):
             return (int(self) - int(other)) % n == 0
             #return NotImplemented
 
         def __repr__(self):
-            return super(Z_Mod_, self).__repr__() + " + <" + repr(n) +">"
+            return super().__repr__() + " + <" + repr(n) +">"
 
         def __str__(self):
-            return super(Z_Mod_, self).__repr__()  # for Python 3.9
+            return super().__repr__()  # for Python 3.9
 
     class Z_ModIterable(type):
 
