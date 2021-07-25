@@ -87,8 +87,8 @@ def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
         >>> t = GF.t()
         >>> p1 = 33 * (t - 3) * (7 * t + 6) * (5*t**4 - 9)
         >>> p2 = 100 * (t - 8) * (7 * t + 6) * (t**2 - 11)
-        >>> print(gcd(p1, p2))
-        -4
+        >>> gcd(p1, p2)
+        -4 + <t-3>
     """
     if b == 0:
         return a
@@ -475,11 +475,11 @@ def divisors(n: int) -> list[int]:
     return sorted(list(divisors_(n)))
 
 def addorder_(element: object, possible_orders: List[int]) -> int:
-    """helper for addorder
+    """Helper for addorder that accepts a list of possible orders.
 
     Args:
 
-        element: The element of an additive group.
+        element: An element of an additive group.
 
         possible_orders: List of possible orders sorted and in
             increasing order.
@@ -543,10 +543,10 @@ def addorder(element: object, exponent = None):
         >>> E  # An elliptic curve over GF(7^3)
         y^2 = x^3 + (t+1)x + (t^2) over Z/7[t]/<t^3+3t^2-3>
 
-        Let us check that the j-invariant is non-zero:
+        Let us check that E is non-singular:
 
-        >>> E.j
-        t^2-3 + <t^3+3t^2-3>
+        >>> E.disc
+        -3t^2+3t-1 + <t^3+3t^2-3>
 
         Given that (2+2t+2t^2, 1+3t-t^2) is a point on the curve, let
         us compute its order:
@@ -559,22 +559,48 @@ def addorder(element: object, exponent = None):
         If we know the order of the curve then we should use that fact
         (since, then, addorder is O(log(order)) instead of O(order)):
 
-        >>> for pt in E:
+        >>> for pt in finite(E):
         ...     addorder(pt, 339)
         ...     break
         ...
         113
     """
-    identity = 0*element
-    accum = copy.copy(element)
     if exponent:
-        return addorder_(element, divisors(exponent)[:-1])
+        return addorder_(element, divisors(exponent))
     else:
+        identity = 0*element
+        accum = copy.copy(element)
         order = 1
         while accum != identity:
             order += 1
             accum += element
         return order
+
+def mulorder_(element: object, possible_orders: List[int]) -> int:
+    """Helper for mulorder that accepts a list of possible orders.
+
+    Args:
+
+        element: An element of a multiplicative group.
+
+        possible_orders: List of possible orders sorted and in
+            increasing order.
+
+    Returns:
+
+        (int). The multiplicative order.
+    """
+    identity = element**0
+    accum = copy.copy(element)
+    if element == identity:
+        return 1
+    prev_divisor = 1
+    for divisor in possible_orders[:-1]:
+        accum *= element ** (divisor - prev_divisor)
+        if accum == identity:
+            return divisor
+        prev_divisor = divisor
+    return possible_orders[-1]
 
 def mulorder(element, exponent = None):
     """Return the order of element.
@@ -642,22 +668,14 @@ def mulorder(element, exponent = None):
         >>> irred = 4 + 3*t**2 + t**3
         >>> GF = FPmod(irred)  #  Galois field of order 7^3
         >>> t = GF(t)
-        >>> mulorder(t, GF.order() - 1) == 7**3-1
+        >>> mulorder(t, 7**3-1) == 7**3-1
         True
     """
-    identity = element**0
-    accum = copy.copy(element)
     if exponent:
-        if element == identity:
-            return 1
-        prev_divisor = 1
-        for divisor in divisors(exponent)[:-1]:
-            accum *= element ** (divisor - prev_divisor)
-            if accum == identity:
-                return divisor
-            prev_divisor = divisor
-        return exponent
+        return mulorder_(element, divisors(exponent))
     else:
+        identity = element**0
+        accum = copy.copy(element)
         order = 1
         while accum != identity:
             order += 1
@@ -707,6 +725,54 @@ def iproduct(*iterables, repeat=1):
             if not saved[i] or len(exhausted) == N:  # Product is empty or all iterables exhausted.
                 return
     yield ()  # There are no iterables.
+
+
+def finite(E: EllCurve) -> Generator[Tuple(int, int)]:
+    """Return a generator that yields the finite points of E.
+
+    This of course takes forever on large curves.
+
+    Examples:
+
+        >>> from numlib import Zmodp, EllCurve
+        >>> F = Zmodp(7)
+        >>> E = EllCurve(F(2), F(3)); E
+        y^2 = x^3 + 2x + 3 over Z/7
+        >>> len({pt for pt in finite(E)})
+        5
+        >>> from numlib import GaloisField
+        >>> F = GaloisField(5, 2)
+        >>> E = EllCurve(F([2,1]), F([4])); E
+        y^2 = x^3 + (t+2)x - 1 over Z/5[t]/<t^2+t+2>
+        >>> len({pt for pt in finite(E)})
+        34
+    """
+    coefcls = (E.j).__class__
+    b = (E.f).of(0)
+    a = (E.f).derivative().of(0)
+
+    if hasattr(coefcls,'char') and coefcls.char:
+        if hasattr(coefcls, '__iter__'):
+            field_elements = coefcls
+        elif not (hasattr(coefcls, 'order') and coefcls.order > coefcls.char):
+            field_elements = [coefcls(i) for i in range(coefcls.char)]
+
+        y2s = {} # map all squares y2 in the field k to {y | y^2 = y2}
+        fs = {}  # map all outputs fs = f(x), x in k, to {x | f(x) = fs}
+
+        # build y2s and fs
+        for x in field_elements:
+            x2 = x ** 2
+            y2s.setdefault(x2, []).append(x)
+            fs.setdefault(x2 * x + a * x + b, []).append(x)
+
+        # yield all points of the curve
+        for y2 in y2s.keys():
+            for f in fs.keys():
+                if y2 == f:
+                    for x in fs[f]:
+                        for y in  y2s[y2]:
+                            yield E(x, y)
 
 if __name__ == "__main__":
 

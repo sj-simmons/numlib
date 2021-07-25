@@ -86,9 +86,10 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
         (2, 5)
         (0, 6)
 
-        Alternatively, use a faster builtin method:
+        Alternatively,
 
-        >>> len({pt for pt in E})  # E generates the finite points
+        >>> from numlib import finite
+        >>> len({pt for pt in finite(E)}) # finite(E) is a generator
         4
 
         This curve has order 5 and hence is cyclic. Every non-identity
@@ -107,11 +108,11 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
     one = (a*b)**0
 
     aa = copy.copy(a)
-    if isinstance(a,Polynomial) and a.x.find('(') < 0 and a.x.find(')') < 0:
+    if isinstance(a,Polynomial) and a._degree > 0 and a.x.find('(') < 0 and a.x.find(')') < 0:
         aa.x  = '('+a.x+')'
 
     bb = copy.copy(b)
-    if isinstance(b,Polynomial) and b.x.find('(') < 0 and b.x.find(')') < 0:
+    if isinstance(b,Polynomial) and b._degree > 0 and b.x.find('(') < 0 and b.x.find(')') < 0:
         bb.x  = '(' + b.x + ')'
 
     f_ =  Polynomial((bb, aa, 0*one, one), 'x', spaces = True, increasing = False)
@@ -121,26 +122,6 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
         f =  Polynomial((b, a, 0*one, one), 'x', increasing = False)
         disc = -16 * (4 * a ** 3 + 27 * b ** 2)
         j = -110592 * a ** 3 / disc if disc != one * 0 else None
-
-        def __iter__(self):
-            """Yield the finite points of the curve."""
-
-            y2s = {} # map all squares y2 in the field k to {y | y^2 = y2}
-            fs = {}  # map all outputs fs = f(x), x in k, to {x | f(x) = fs}
-
-            # build y2s and fs
-            for x in (a * b).__class__:
-                x2 = x ** 2
-                y2s.setdefault(x2, []).append(x)
-                fs.setdefault(x2 * x + a * x + b, []).append(x)
-
-            # yield all points of the curve
-            for y2 in y2s.keys():
-                for f in fs.keys():
-                    if y2 == f:
-                        for x in fs[f]:
-                            for y in  y2s[y2]:
-                                yield self(x, y)
 
         #@classmethod
         #def random_point(self):
