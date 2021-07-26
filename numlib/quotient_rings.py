@@ -100,39 +100,39 @@ def Zmod(n: int, mp=False, negatives=False) -> Type[int]:
         #    return super(metacls, metacls).__new__(metacls, value % n)
 
         def __add__(self, other):
-            return Z_Mod_(super().__add__(other))
+            return Z_Mod(super().__add__(other))
 
         def __radd__(self, other):
-            return Z_Mod_(super().__radd__(other))
+            return Z_Mod(super().__radd__(other))
 
         def __neg__(self):
-            return Z_Mod_(super().__neg__())
+            return Z_Mod(super().__neg__())
 
         def __sub__(self, other):
-            return Z_Mod_(super().__sub__(other))
+            return Z_Mod(super().__sub__(other))
 
         def __rsub__(self, other):
-            return Z_Mod_(super().__rsub__(other))
+            return Z_Mod(super().__rsub__(other))
 
         def __mul__(self, other):
-            return Z_Mod_(super().__mul__(other))
+            return Z_Mod(super().__mul__(other))
 
         def __rmul__(self, other):
-            return Z_Mod_(super().__rmul__(other))
+            return Z_Mod(super().__rmul__(other))
 
         def __pow__(self, m):
             if m >= 0:
-                return Z_Mod_(pow(int(self), m, n))
+                return Z_Mod(pow(int(self), m, n))
             else:
                 g, inv, _ = xgcd(int(self), n)
                 assert g == 1 or g == -1, f"{int(self)} is not invertible modulo {n}"
-                return Z_Mod_(pow(inv, -m, n))
+                return Z_Mod(pow(inv, -m, n))
 
         def __truediv__(self, other):
             return self * other**-1
 
         def __rtruediv__(self, other):
-            return Z_Mod_(other)*self**-1
+            return Z_Mod(other)*self**-1
 
         def __eq__(self, other):  #NOTE: do you need this?  (and below)
             return (int(self) - int(other)) % n == 0
@@ -157,7 +157,7 @@ def Zmod(n: int, mp=False, negatives=False) -> Type[int]:
                 if i == 0 and units_:
                     continue
                 if not units_ or gcd(i, n) == 1:
-                    #yield Z_Mod_(i)  NOTE: check if this faster?  (and below one)
+                    #yield Z_Mod(i)  NOTE: check if this faster?  (and below one)
                     yield self(i)
 
         def units(self):
@@ -187,6 +187,7 @@ def Zmod(n: int, mp=False, negatives=False) -> Type[int]:
         def isunit(self):
             return self != 0 and gcd(self, n) == 1
 
+    Z_Mod.__name__ = f"Z/{n}"
     Z_Mod.char = n
 
     return Z_Mod
@@ -263,31 +264,31 @@ def Zmodp(p: int, mp=False, negatives=False) -> Type[int]:
         #    return super(metacls, metacls).__new__(metacls, value % n)
 
         def __add__(self, other):
-            return Z_Mod_(super().__add__(other))
+            return Z_ModP(super().__add__(other))
 
         def __radd__(self, other):
-            return Z_Mod_(super().__radd__(other))
+            return Z_ModP(super().__radd__(other))
 
         def __neg__(self):
-            return Z_Mod_(super().__neg__())
+            return Z_ModP(super().__neg__())
 
         def __sub__(self, other):
-            return Z_Mod_(super().__sub__(other))
+            return Z_ModP(super().__sub__(other))
 
         def __rsub__(self, other):
-            return Z_Mod_(super().__rsub__(other))
+            return Z_ModP(super().__rsub__(other))
 
         def __mul__(self, other):
-            return Z_Mod_(super().__mul__(other))
+            return Z_ModP(super().__mul__(other))
 
         def __rmul__(self, other):
-            return Z_Mod_(super().__rmul__(other))
+            return Z_ModP(super().__rmul__(other))
 
         def __pow__(self, m):
             if m >= 0:
-                return Z_Mod_(pow(int(self), m, p))
+                return Z_ModP(pow(int(self), m, p))
             else:
-                return Z_Mod_(1)/Z_Mod_(pow(int(self), -m, p))
+                return Z_ModP(1)/Z_ModP(pow(int(self), -m, p))
 
         def __truediv__(self, other):
             g, inv, _ = xgcd(int(other), p)
@@ -295,7 +296,7 @@ def Zmodp(p: int, mp=False, negatives=False) -> Type[int]:
             return self * inv
 
         def __rtruediv__(self, other):
-            return Z_Mod_(other).__truediv__(self)
+            return Z_ModP(other).__truediv__(self)
 
         def __eq__(self, other):  # NOTE: Do you need this?
             return (int(self) - int(other)) % p == 0
@@ -309,9 +310,6 @@ def Zmodp(p: int, mp=False, negatives=False) -> Type[int]:
         #def __str__(self):
         #    return super().__repr__()  # for Python 3.9
 
-    Z_Mod_.__name__ = f"Z/{p}"
-    Z_Mod_.char = p
-
     class Z_ModIterable(type):
 
         def __iter__(self, units_: bool = False):
@@ -319,7 +317,7 @@ def Zmodp(p: int, mp=False, negatives=False) -> Type[int]:
             for i in range(- ((p - 1) // 2) , p - ((p - 1) // 2) ) if negatives else range(p):
                 if i == 0 and units_:
                     continue
-                #yield Z_Mod_(i)  #NOTE: would this be faster?
+                #yield Z_Mod(i)  #NOTE: would this be faster?
                 yield self(i)
 
         def units(self):  # NOTE: REMOVE THIS?
@@ -362,6 +360,7 @@ def Zmodp(p: int, mp=False, negatives=False) -> Type[int]:
         #def char(self):
         #    return p
 
+    Z_ModP.__name__ = f"Z/{p}"
     Z_ModP.char = p
 
     return Z_ModP

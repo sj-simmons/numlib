@@ -751,17 +751,13 @@ def finite(E: EllCurve) -> Generator[Tuple(int, int)]:
     b = (E.f).of(0)
     a = (E.f).derivative().of(0)
 
-    if hasattr(coefcls,'char') and coefcls.char:
-        if hasattr(coefcls, '__iter__'):
-            field_elements = coefcls
-        elif not (hasattr(coefcls, 'order') and coefcls.order > coefcls.char):
-            field_elements = [coefcls(i) for i in range(coefcls.char)]
+    if hasattr(coefcls,'char') and coefcls.char and hasattr(coefcls, '__iter__'):
 
         y2s = {} # map all squares y2 in the field k to {y | y^2 = y2}
         fs = {}  # map all outputs fs = f(x), x in k, to {x | f(x) = fs}
 
         # build y2s and fs
-        for x in field_elements:
+        for x in coefcls:
             x2 = x ** 2
             y2s.setdefault(x2, []).append(x)
             fs.setdefault(x2 * x + a * x + b, []).append(x)
@@ -773,6 +769,9 @@ def finite(E: EllCurve) -> Generator[Tuple(int, int)]:
                     for x in fs[f]:
                         for y in  y2s[y2]:
                             yield E(x, y)
+    else:
+       return NotImplemented
+
 
 if __name__ == "__main__":
 
