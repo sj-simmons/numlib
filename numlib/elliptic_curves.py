@@ -67,24 +67,24 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
         >>> print(0 * pt)
         [0: 1: 0]
 
-        Not a point on E:
-
-        >>> E(0,0) # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ValueError: (0, 0) = [0: 0: 1] is not on y^2 = x^3 + x + 1...
-
-        Find all points on E:
-
-        >>> from numlib import iproduct
-        >>> for pair in iproduct(GF, GF):
-        ...     try:
-        ...         print(E(*pair))
-        ...     except:
-        ...         pass
-        (0, 1)
-        (2, 2)
-        (2, 5)
-        (0, 6)
+#        Not a point on E:
+#
+#        >>> E(0,0) # doctest: +ELLIPSIS
+#        Traceback (most recent call last):
+#        ValueError: (0, 0) = [0: 0: 1] is not on y^2 = x^3 + x + 1...
+#
+#        Find all points on E:
+#
+#        >>> from numlib import iproduct
+#        >>> for pair in iproduct(GF, GF):
+#        ...     try:
+#        ...         print(E(*pair))
+#        ...     except:
+#        ...         pass
+#        (0, 1)
+#        (2, 2)
+#        (2, 5)
+#        (0, 6)
 
         Alternatively,
 
@@ -108,56 +108,40 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
     one = (a*b)**0
 
     aa = copy.copy(a)
-    if isinstance(a,Polynomial) and a._degree > 0 and a.x.find('(') < 0 and a.x.find(')') < 0:
+    if isinstance(a,Polynomial) and a._degree and a._degree > 0 and a.x.find('(') < 0 and a.x.find(')') < 0:
         aa.x  = '('+a.x+')'
 
     bb = copy.copy(b)
-    if isinstance(b,Polynomial) and b._degree > 0 and b.x.find('(') < 0 and b.x.find(')') < 0:
+    if isinstance(b,Polynomial) and b._degree and b._degree > 0 and b.x.find('(') < 0 and b.x.find(')') < 0:
         bb.x  = '(' + b.x + ')'
 
-    f_ =  Polynomial((bb, aa, 0*one, one), 'x', spaces = True, increasing = False)
+    f_ =  Polynomial((bb, aa, one*0, one), 'x', spaces = True, increasing = False)
 
     class EllipticCurve(type):
 
-        f =  Polynomial((b, a, 0*one, one), 'x', increasing = False)
+        f =  Polynomial((bb, aa, 0*one, one), 'x', increasing = False)
         disc = -16 * (4 * a ** 3 + 27 * b ** 2)
         j = -110592 * a ** 3 / disc if disc != one * 0 else None
 
-        #@classmethod
-        #def random_point(self):
-        #    F = (a*b).__class__
-        #    if F.char() % 4 == 3
-        #        for x in F:
-        #            fx = self.f.of(x)
-        #            if fx ** (p - 1) // 2 == 1
-        #            y = self.f.of(x) ** (p + 1) // 4
-        #        rand
-        #    else:
-        #        return NotImplemented
-
         @classmethod
         def __repr__(self):
-            if (a*b).__class__.__name__ in {'ZModPrime', 'Zmod', 'FPmod_'}:
-                class_string = (a*b).__class__.__class__.__str__()
-            else:
-                class_string = (a*b).__class__.__name__
-            return f"y^2 = {f_} over {class_string}"
+            return f"y^2 = {f_} over {one.__class__}"
 
-        @classmethod
-        def discriminant(self):
-            s = str(self.disc)
-            if s[0] == '(' and s[-1] == ')' and s[1:-1].find('(') < 0:
-                return s[1:-1]
-            else:
-                return s
+        #@classmethod
+        #def discriminant(self):
+        #    s = str(self.disc)
+        #    if s[0] == '(' and s[-1] == ')' and s[1:-1].find('(') < 0:
+        #        return s[1:-1]
+        #    else:
+        #        return s
 
-        @classmethod
-        def j_invariant(self):
-            s = str(self.j)
-            if s[0] == '(' and s[-1] == ')' and s[1:-1].find('(') < 0:
-                return s[1:-1]
-            else:
-                return s
+        #@classmethod
+        #def j_invariant(self):
+        #    s = str(self.j)
+        #    if s[0] == '(' and s[-1] == ')' and s[1:-1].find('(') < 0:
+        #        return s[1:-1]
+        #    else:
+        #        return s
 
     class Weierstrass(AlgebraicCurve, metaclass = EllipticCurve):
 
@@ -166,17 +150,17 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
 
             z = one if z is None else z
 
-            x = one * x; y = one * y; z = one * z
+            #x = one * x; y = one * y; z = one * z
 
-            if z != 0*one:
-                if (y/z)**2 != f_.of(x/z):
-                    raise ValueError(
-                        (f"({x/z}, {y/z}) = [{x}: {y}: {z}] is not on y^2 = {f_}: "
-                        f"y^2 = {(y/z)**2} != {f_.of(x/z)}")
-                    )
-            else:
-                if not (x == 0 and y != 0):
-                    raise ValueError(f"[{x}: {y}: {z}] is not on {y2} = {f}")
+            #if z != 0*one:
+            #    if (y/z)**2 != f_.of(x/z):
+            #        raise ValueError(
+            #            (f"({x/z}, {y/z}) = [{x}: {y}: {z}] is not on y^2 = {f_}: "
+            #            f"y^2 = {(y/z)**2} != {f_.of(x/z)}")
+            #        )
+            #else:
+            #    if not (x == 0 and y != 0):
+            #        raise ValueError(f"[{x}: {y}: {z}] is not on {y2} = {f}")
 
             self.co = (x, y, z)
 

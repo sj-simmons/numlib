@@ -1,4 +1,4 @@
-from .utils import gcd, lcm, xgcd, sieve, leastdivisor, istrueprime, isprime, factor, factorPR, truephi, phi, truemu, mu, divisors, addorder_, addorder, mulorder_, mulorder, serialize, unserialize, iproduct, finite
+from .utils import gcd, lcm, xgcd, sieve, leastdivisor, istrueprime, isprime, factor, factorPR, truephi, phi, truemu, mu, divisors, addorder_, addorder, mulorder_, mulorder, serialize, unserialize, iproduct, finite, finite2
 from .quotient_rings import Zmod, Zmodp, Pmod, FPmod, squareroot, GaloisField
 from .elliptic_curves import EllCurve
 

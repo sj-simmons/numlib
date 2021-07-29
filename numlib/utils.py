@@ -45,7 +45,7 @@ def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
 
     If the arguments are ints, this returns either the usual, positive
     greatest common divisor, or its negative. So, recover the usual gcd
-    with abs(gcd(a,b).
+    with abs(gcd(a,b)).
 
     For polynomials over a field, greatest common divisors are defined
     only up to multiplication by a unit in the field; this function
@@ -77,18 +77,18 @@ def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
 
         >>> from numlib import GaloisField
         >>> GF = GaloisField(2, 3)
-        >>> t = GF.t()
+        >>> t = GF()
         >>> p1 = 33 * (t - 3) * (7 * t + 6) * (5 * t**4 - 9)
         >>> p2 = 100 * (t - 8) * (7 * t + 6) * (t**2 - 11)
         >>> print(gcd(p1, p2))
         t+1
 
         >>> GF = GaloisField(43)
-        >>> t = GF.t()
+        >>> t = GF()
         >>> p1 = 33 * (t - 3) * (7 * t + 6) * (5*t**4 - 9)
         >>> p2 = 100 * (t - 8) * (7 * t + 6) * (t**2 - 11)
-        >>> gcd(p1, p2)
-        -4 + <t-3>
+        >>> print(gcd(p1, p2))
+        -4
     """
     if b == 0:
         return a
@@ -535,8 +535,8 @@ def addorder(element: object, exponent = None):
 
         >>> from numlib import GaloisField, EllCurve
         >>> from polylib import FPolynomial
-        >>> F = GaloisField(7, 3)
-        >>> F  # GaloisField of order 7^3
+        >>> F = GaloisField(7, 3)  # GaloisField of order 7^3
+        >>> print(F)
         Z/7[t]/<t^3+3t^2-3>
         >>> t = F([0,1])  # generator of the unit group of GF(7^3)
         >>> E = EllCurve(t+1, t**2)
@@ -686,12 +686,14 @@ def serialize(obj, filename, directory = '.'):
     filename = ''.join(c for c in filename if c.isalnum())
     if os.path.exists(directory+'/'+filename):
         raise ValueError(f"file {directory}/{filename} exists")
+    print('serializing', filename, 'to', directory)
     pickle.dump(obj , open(directory+'/'+filename, "wb"))
 
 def unserialize(filename, directory = '.'):
     filename = ''.join(c for c in filename if c.isalnum())
     if not os.path.exists(directory+'/'+filename):
         raise ValueError(f"file {directory}/{filename} does not exist")
+    print('unserializing', filename, 'from', directory)
     return pickle.load(open(directory+'/'+filename, "rb"))
 
 def iproduct(*iterables, repeat=1):
@@ -735,21 +737,22 @@ def finite(E: EllCurve) -> Generator[Tuple(int, int)]:
     Examples:
 
         >>> from numlib import Zmodp, EllCurve
-        >>> F = Zmodp(7)
+        >>> F = Zmodp(71)
         >>> E = EllCurve(F(2), F(3)); E
-        y^2 = x^3 + 2x + 3 over Z/7
+        y^2 = x^3 + 2x + 3 over Z/71
         >>> len({pt for pt in finite(E)})
-        5
+        87
         >>> from numlib import GaloisField
         >>> F = GaloisField(5, 2)
-        >>> E = EllCurve(F([2,1]), F([4])); E
+        >>> t = F()
+        >>> E = EllCurve(2+t, 4*t**0); E
         y^2 = x^3 + (t+2)x - 1 over Z/5[t]/<t^2+t+2>
         >>> len({pt for pt in finite(E)})
         34
     """
-    coefcls = (E.j).__class__
-    b = (E.f).of(0)
-    a = (E.f).derivative().of(0)
+    coefcls = E.disc.__class__
+    b = E.f(0)
+    a = E.f.derivative()(0)
 
     if hasattr(coefcls,'char') and coefcls.char and hasattr(coefcls, '__iter__'):
 
@@ -772,6 +775,41 @@ def finite(E: EllCurve) -> Generator[Tuple(int, int)]:
     else:
        return NotImplemented
 
+def finite2(E: EllCurve) -> Generator[Tuple(int, int)]:
+    """Yield roughly half of the finite points of E.
+
+    This yields one of each pair, (x, y), (x,y), of points
+    not on the line y=0.
+
+    Examples:
+
+        >>> from numlib import Zmodp, EllCurve
+        >>> F = Zmodp(71)
+        >>> E = EllCurve(F(2), F(3)); E
+        y^2 = x^3 + 2x + 3 over Z/71
+        >>> len({pt for pt in finite2(E)})
+        42
+        >>> from numlib import GaloisField
+        >>> F = GaloisField(5, 2)
+        >>> t = F()
+        >>> E = EllCurve(2+t, 4*t**0); E
+        y^2 = x^3 + (t+2)x - 1 over Z/5[t]/<t^2+t+2>
+        >>> len({pt for pt in finite2(E)})  # NOTE: implement this
+        0
+    """
+    f = E.f
+    coefcls = E.disc.__class__
+
+    if hasattr(coefcls,'char') and coefcls.char and hasattr(coefcls, '__iter__'):
+
+        q = coefcls.order if hasattr(coefcls,'order') else coefcls.char
+        if q % 4 == 3:
+            for x in coefcls:
+                fx = f(x)
+                if fx ** ((q - 1) // 2) == 1:
+                    yield E(x, y = fx ** ((q + 1) // 4))
+        else:
+            return NotImplemented
 
 if __name__ == "__main__":
 
