@@ -3,9 +3,9 @@ from polylib import Polynomial
 import copy
 
 __author__ = "Scott Simmons"
-__version__ = "0.1"
+__version__ = "0.2"
 __status__ = "Development"
-__date__ = "06/23/21"
+__date__ = "03/24/22"
 __copyright__ = """
   Copyright 2014-2021 Scott Simmons
 
@@ -30,7 +30,7 @@ class AlgebraicCurve:
 #        pass
 
 
-def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
+def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
     """Return a class whose instances are elements of y^2=x^3+ax+b.
 
     This implements an elliptic curve in Weierstrauss form. The returned
@@ -88,8 +88,8 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
 
         Alternatively,
 
-        >>> from numlib import finite
-        >>> len({pt for pt in finite(E)}) # finite(E) is a generator
+        >>> from numlib import affine
+        >>> len({pt for pt in affine(E)}) # finite(E) is a generator
         4
 
         This curve has order 5 and hence is cyclic. Every non-identity
@@ -152,15 +152,16 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
 
             #x = one * x; y = one * y; z = one * z
 
-            #if z != 0*one:
-            #    if (y/z)**2 != f_.of(x/z):
-            #        raise ValueError(
-            #            (f"({x/z}, {y/z}) = [{x}: {y}: {z}] is not on y^2 = {f_}: "
-            #            f"y^2 = {(y/z)**2} != {f_.of(x/z)}")
-            #        )
-            #else:
-            #    if not (x == 0 and y != 0):
-            #        raise ValueError(f"[{x}: {y}: {z}] is not on {y2} = {f}")
+            if debug:
+                if z != 0*one:
+                    if (y/z)**2 != f_(x/z):
+                        raise ValueError(
+                            (f"({x/z}, {y/z}) = [{x}: {y}: {z}] is not on y^2 = {f_}: "
+                            f"y^2 = {(y/z)**2} != {f_(x/z)}")
+                        )
+                else:
+                    if not (x == 0 and y != 0):
+                        raise ValueError(f"[{x}: {y}: {z}] is not on {y2} = {f}")
 
             self.co = (x, y, z)
 
@@ -190,6 +191,8 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
             return self.__class__(u * w, t * (u0 * u2 - w) - t0 * u3, u3 * v)
 
         def __eq__(self, other):
+            if other == 0:
+                return self.co[2] == 0
             if self.co[2] ==  0 == other.co[2]:
                 return True
             if self.co[2] == other.co[2]:
@@ -199,7 +202,6 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
             return False
 
         def __mul__(self: EllCurve, n: int) -> EllCurve:
-
             if n == 0:
                 return self.__class__(0, 1 ,0)
             elif n == 1:
@@ -248,7 +250,11 @@ def EllCurve(a: Field, b: Field) -> AlgebraicCurve:
                 return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]}) on {self.__class__}"
 
         def __hash__(self) -> int:
-            return hash(self.co)
+            # need to hash unique coords so do something like this:
+            if self == 0:
+                return hash((self.co[2], self.co[2]))
+            else:
+                return hash((self.co[0]/self.co[2], self.co[1]/self.co[2]))
 
     return Weierstrass
 

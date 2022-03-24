@@ -7,14 +7,14 @@ import decimal
 import functools
 import operator
 from itertools import combinations, cycle, product, tee
-from typing import List, Tuple, TYPE_CHECKING, cast, TypeVar, Generator
+from typing import List, Tuple, TYPE_CHECKING, cast, TypeVar, Generator, Callable
 if TYPE_CHECKING:
     from polylib import FPolynomial
 
 __author__ = "Scott Simmons"
-__version__ = "0.1"
+__version__ = "0.2"
 __status__ = "Development"
-__date__ = "5/1/21"
+__date__ = "03/24/22"
 __copyright__ = """
   Copyright 2014-2021 Scott Simmons
 
@@ -112,7 +112,7 @@ def lcm(a: Euclidean, b: Euclidean) -> Euclidean:
     return a * b // gcd(a,b)
 
 def xgcd(a: Euclidean, b: Euclidean) -> Tuple[Euclidean, ...]:
-    """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = r*a + s*b.
+    """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = s*a + t*b.
 
     This works as expected for ints, but also with polynomials defined
     over fields.
@@ -559,7 +559,7 @@ def addorder(element: object, exponent = None):
         If we know the order of the curve then we should use that fact
         (since, then, addorder is O(log(order)) instead of O(order)):
 
-        >>> for pt in finite(E):
+        >>> for pt in affine(E):
         ...     addorder(pt, 339)
         ...     break
         ...
@@ -729,8 +729,8 @@ def iproduct(*iterables, repeat=1):
     yield ()  # There are no iterables.
 
 
-def finite(E: EllCurve) -> Generator[Tuple(int, int)]:
-    """Return a generator that yields the finite points of E.
+def affine(E: EllCurve) -> Generator[Tuple(int, int)]:
+    """Return a generator that yields the affine points of E.
 
     This of course takes forever on large curves.
 
@@ -740,14 +740,14 @@ def finite(E: EllCurve) -> Generator[Tuple(int, int)]:
         >>> F = Zmodp(71)
         >>> E = EllCurve(F(2), F(3)); E
         y^2 = x^3 + 2x + 3 over Z/71
-        >>> len({pt for pt in finite(E)})
+        >>> len({pt for pt in affine(E)})
         87
         >>> from numlib import GaloisField
         >>> F = GaloisField(5, 2)
         >>> t = F()
         >>> E = EllCurve(2+t, 4*t**0); E
         y^2 = x^3 + (t+2)x - 1 over Z/5[t]/<t^2+t+2>
-        >>> len({pt for pt in finite(E)})
+        >>> len({pt for pt in affine(E)})
         34
     """
     coefcls = E.disc.__class__
@@ -775,8 +775,8 @@ def finite(E: EllCurve) -> Generator[Tuple(int, int)]:
     else:
        return NotImplemented
 
-def finite2(E: EllCurve) -> Generator[Tuple(int, int)]:
-    """Yield roughly half of the finite points of E.
+def affine2(E: EllCurve) -> Generator[Tuple(int, int)]:
+    """Yield roughly half of the affine points of E.
 
     This yields one of each pair, (x, y), (x,y), of points
     not on the line y=0.
@@ -787,14 +787,14 @@ def finite2(E: EllCurve) -> Generator[Tuple(int, int)]:
         >>> F = Zmodp(71)
         >>> E = EllCurve(F(2), F(3)); E
         y^2 = x^3 + 2x + 3 over Z/71
-        >>> len({pt for pt in finite2(E)})
+        >>> len({pt for pt in affine2(E)})
         42
         >>> from numlib import GaloisField
         >>> F = GaloisField(5, 2)
         >>> t = F()
         >>> E = EllCurve(2+t, 4*t**0); E
         y^2 = x^3 + (t+2)x - 1 over Z/5[t]/<t^2+t+2>
-        >>> len({pt for pt in finite2(E)})  # NOTE: implement this
+        >>> len({pt for pt in affine2(E)})  # NOTE: implement this
         0
     """
     f = E.f
@@ -810,6 +810,165 @@ def finite2(E: EllCurve) -> Generator[Tuple(int, int)]:
                     yield E(x, y = fx ** ((q + 1) // 4))
         else:
             return NotImplemented
+
+def frobenious2(E, m):
+    """Return the mth iterate of the  q^r-power Frobenius isogeny.
+
+    Args:
+
+        E (EllipticCurve): an elliptic curve over a finite field
+            K of order q^r where q = p^n and E is defined in terms
+            of short Weierstrauss coefficients a and b in the ord-
+            er q subfield of K.
+
+        m (int): a positive integer.
+
+    Returns:
+
+        (Callable). A function that maps a given pt = (x, y) in E
+            to (x^(q^m), y^(q^m)).
+
+    Examples:
+
+        The Frobenious endomophism of a field of order q^r as an ex-
+        tension of a subfield of order q = p^n maps like x -> x^q;
+        it has order q^r (and in fact generates the associated Galois
+        group).
+
+        Given E as above, the Frobenious isogeny E -> E maps like
+
+                            (x, y) -> (x^q, y^q);
+
+        clearly, its rth iterate is the identity.
+
+        Example 1: q = p = 7; r = 3
+
+        >>> from numlib import GaloisField, EllCurve, affine2
+        >>> GF = GaloisField(7, 3); t = GF()
+        >>> E = EllCurve(2*t**0, 3*t**0); E  # A curve E over GF(7,3)
+        y^2 = x^3 + 2x + 3 over Z/7[t]/<t^3+3t^2-3>
+        >>> pt = next(affine2(E)); print(pt)  # A point on E
+        (-3t^2-3t-2, -t^2-t+1)
+
+        The 3rd iterate is the identity isogeny:
+
+        >>> from numlib import affine
+        >>> E_affine = affine(E)  # affine points  of E
+        >>> frob = frobenious2(E, 3)
+        >>> print(f"{pt} maps to {frob(pt)}")
+        (-3t^2-3t-2, -t^2-t+1) maps to (-3t^2-3t-2, -t^2-t+1)
+        >>> all(frob(pt) == pt for pt in E_affine)
+        True
+
+        But the 2nd one is non-trivial:
+
+        >>> frob = frobenious2(E, 2)
+        >>> print(f"{pt} maps to {frob(pt)}")
+        (-3t^2-3t-2, -t^2-t+1) maps to (3t^2-t+3, t^2+2t-2)
+
+        Example 2: q = 7^3; r = 2
+
+        >>> from polylib import FPolynomial
+        >>> from numlib import FPmod
+        >>> GF = GaloisField(7, 3, indet='(t)'); t = GF()
+        >>> # the polynomial below has coefficients in GF(7, 3)
+        >>> # and is irreducible over GF(7,3)
+        >>> irred = FPolynomial([-t**2-3, -2*t**2-t, t**0])
+        >>> print(irred)
+        (-t^2-3) + (-2t^2-t)x + x^2
+        >>> F = FPmod(irred); F
+        Z/7[(t)]/<(t^3+3t^2-3)>[x]/<(-t^2-3) + (-2t^2-t)x + x^2>
+        >>> x = F([0*t, 1*t**0])
+        >>> x
+        x + <(-t^2-3) + (-2t^2-t)x + x^2>
+        >>> #E = EllCurve(2*t*x**0, 3*t**2*x**0, debug = True)
+
+    """
+    PF = E.j.__class__
+    t = PF()
+    if PF.char == t.char:  # then the primefield is Z/p
+        PF_frob = lambda x: x**(PF.char ** m)
+    else:  # the primefield is an extension of Z/p
+        PF_frob = lambda x: x**(PF.order//PF.char ** m)
+    return lambda pt: E(*tuple(map(PF_frob, tuple(pt.co))))
+
+
+def frobenious(E, r):
+    """Return the q^r-power Frobenious isogeny.
+
+    Args:
+
+        E (EllipticCurve): an elliptic curve over a finite field
+            K of order q = p^n.
+
+        r (int): a positive integer.
+
+    Returns:
+
+        (Callable). A function that maps a given pt = (x, y) in E
+            to (x^(q^r), y^(q^r)).
+
+    Examples:
+
+    Given E defined the field K = GF(p,n) of order q = p^n, this re-
+    turns the function E(K') -> E(K') on K'-rational points of E over
+    where K' is a field of order q^r, i.e., GF(p,nr), that maps like
+
+                          (x, y) -> (x^r, y^r).
+
+    In other words, on the level of coefficients x and y, the map is
+    just the rth iterate of the endormorphism F: K -> K defined by
+    F(x) = x^p^n which, in turn, is just the nth iteratate of the
+    Frobenious endomorphism Z/p -> Z/p.
+
+    If K has order q=p^n, then F^n(x) = x^(p^n) = x for all x so that
+    the map x -> x^(p^n) is the identity on k; hence frobenious(E,1)
+    is the identity on K-rational points of E. For instance,
+
+        >>> import numlib as nl
+        >>> GF = nl.GaloisField(7, 3); t = GF()
+        >>> E = nl.EllCurve(1+t, 2*t); E  # A curve E over GF(7,3)
+        y^2 = x^3 + (t+1)x + (2t) over Z/7[t]/<t^3+3t^2-3>
+        >>> E_affine = nl.affine(E)  # affine points  of E
+
+        >>> pt = next(nl.affine2(E)); print(pt)  # A point on E
+        (-3t^2-2t-2, -3t^2-2t-2)
+        >>> frob = frobenious(E, 3)
+        >>> print(f"{pt} maps to {frob(pt)}")
+        (-3t^2-2t-2, -3t^2-2t-2) maps to (-3t^2-2t-2, -3t^2-2t-2)
+        >>> all(frob(pt) == pt for pt in E_affine)
+        True
+
+    As an endomorphism of K=GF(p,n), F has order n (and, in fact, gen-
+    erates the Galois group of GF(p,n) over GF(p,1)).
+
+
+
+    If we think of F as a map on the algebraic closure of k, and frob(r) is just frob(1) composed with itself r times, and
+
+        - frob(r) is the identity when restricted to GF(p,r);
+          i.e, frob = frob(1) has order r when on GF(p,r).
+
+        >>> frob = frobenious(E, 1)
+        >>> print(f"{pt} maps to {frob(pt)}")
+        (-3t^2-2t-2, -3t^2-2t-2) maps to (-t^2+2t+3, -t^2+2t+3)
+        >>> frob = frobenious(E, 2)
+        >>> print(f"{pt} maps to {frob(pt)}")
+        (-3t^2-2t-2, -3t^2-2t-2) maps to (-3t^2, -3t^2)
+        >>> frob = frobenious(E, 3)
+        >>> print(f"{pt} maps to {frob(pt)}")
+        (-3t^2-2t-2, -3t^2-2t-2) maps to (-3t^2-2t-2, -3t^2-2t-2)
+        >>> frob = frobenious(E, 4)
+        >>> print(f"{pt} maps to {frob(pt)}")
+        (-3t^2-2t-2, -3t^2-2t-2) maps to (-t^2+2t+3, -t^2+2t+3)
+    """
+    from numlib import EllCurve
+    b = E.f(0)
+    a = E.f.derivative()(0)
+    pr = E.j.char**r
+    E_codomain = EllCurve(a**pr, b**pr, debug = True)
+    F = lambda x: x**pr
+    return lambda pt: E_codomain(*tuple(map(F, tuple(pt.co))))
 
 if __name__ == "__main__":
 
