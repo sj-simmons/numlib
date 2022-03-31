@@ -41,7 +41,7 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
 
         >>> from numlib import Zmod
         >>> GF = Zmod(7)
-        >>> E = EllCurve(GF(1), GF(1))
+        >>> E = EllCurve(GF(1), GF(1), debug = True)
         >>> E
         y^2 = x^3 + x + 1 over Z/7
         >>> E.j  # the j-invariant for the curve
@@ -67,24 +67,21 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
         >>> print(0 * pt)
         [0: 1: 0]
 
-#        Not a point on E:
-#
-#        >>> E(0,0) # doctest: +ELLIPSIS
-#        Traceback (most recent call last):
-#        ValueError: (0, 0) = [0: 0: 1] is not on y^2 = x^3 + x + 1...
-#
-#        Find all points on E:
-#
-#        >>> from numlib import iproduct
-#        >>> for pair in iproduct(GF, GF):
-#        ...     try:
-#        ...         print(E(*pair))
-#        ...     except:
-#        ...         pass
-#        (0, 1)
-#        (2, 2)
-#        (2, 5)
-#        (0, 6)
+        Not a point on E:
+
+        >>> E(0,0) # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ValueError: (0, 0) = [0: 0: 1] is not on y^2 = x^3 + x + 1...
+
+        Find all points on E:
+
+        >>> from numlib import iproduct
+        >>> for pair in iproduct(GF, GF): # doctest: +ELLIPSIS
+        ...     try:
+        ...         print(E(*pair), end=', ')
+        ...     except:
+        ...         pass
+        (0, 1), (2, 2), (2, 5), (0, 6), ...
 
         Alternatively,
 

@@ -79,12 +79,16 @@ def Zmod(n: int, mp=False, negatives=False, indet='x', spaces = False, increasin
         >>> print(3*x**2 + 5*x + 100)
         3x^2+5x+100
         >>> 3*x**2 + 5*x + 100
-        FPolynomial((100 + <143>, 5 + <143>, 3 + <143>))
+        Polynomial((100 + <143>, 5 + <143>, 3 + <143>))
 
-        >>> R = Zmod(143, indet = 'y', spaces = False, increasing = False)
+        >>> R = Zmod(143, indet = 'y', spaces = True, increasing = False)
         >>> y = R()
         >>> print(3*y**2 + 5*y + 100)
-        3y^2+5y+100
+        3y^2 + 5y + 100
+
+        >>> R = Zmod(143, indet = 'y', increasing = True); y = R()
+        >>> print(3*y**2+5*y+100)
+        100+5y+3y^2
     """
     global Z_Mod
 
@@ -98,7 +102,7 @@ def Zmod(n: int, mp=False, negatives=False, indet='x', spaces = False, increasin
         def __new__(cls, value = ()):
             #return super(cls, cls).__new__(cls, value % n)
             if value == ():
-                return FPolynomial(
+                return Polynomial(
                     [super(Z_Mod_, cls).__new__(cls, 0),super(Z_Mod_, cls).__new__(cls, 1)],
                     x = indet,
                     spaces = spaces,
@@ -704,17 +708,21 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
         >>> y = FPolynomial((F1([0]), F1([1])), squareroot(3))
         >>> F2 = FPmod(3-y**2)
         >>> root3 = F2(y); root3
-        √3 + <3 + -1√3^2>
-        >>> #root3[-1]/root3[-1]
+        √3 + <3 + -√3^2>
 
-        >>> #root2+root3
+        Note that type is inferred from left summand:
 
-        >>> #root3+root2
+        >>> root2+root3  # not correct
+        √3 + √2 + <2 - √2^2>
 
-        >>> #(1+root2+root3)**5
+        >>> root3+root2  # correct
+        √2 + √3 + <3 + -√3^2>
 
-        >>> #(root2+root3)**4-10*(root2+root3)**2+1
+        >>> (1+root3+root2)**5
+        296 + 224√2 + 184 + 120√2√3 + <3 + -√3^2>
 
+        >>> (root3+root2)**4-10*(root3+root2)**2+1
+        <3 + -√3^2>
     """
     global FPmod_
 
