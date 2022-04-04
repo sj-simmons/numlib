@@ -801,16 +801,11 @@ def sqrt(a, q, p):
 
         (Field). An element of F whose square is the given a.
     """
-    coefcls = a.__class__
-    p = coefcls.char
-    q = p if not hasattr(coefcls,'order') else coefcls.order
-
     if q % 4 == 3:
         return a**((q+1)//4)
     elif q > p:
         return NotImplemented
     else:
-        # Cipolla's algorithm:
         one = a**0
         t = random.randint(0, p-1) * one
         while (t**2-4*a) ** ((p-1)//2) != -1:
@@ -848,13 +843,12 @@ def affine2(E: EllCurve) -> Generator[Tuple(int, int)]:
         it has 2 * 34 + 1 = 79 finite points.
 
         >>> F = Zmodp(73)
-        >>> E = EllCurve(F(2), F(3))
+        >>> E = EllCurve(F(2), F(3), debug = True)
         >>> E.disc != 0
         True
-
-#        The line below is correct but breaks doctest TODO: fix
-#        >>> len(list(affine2(E)))
-#        34
+        >>> aff = affine2(E)
+        >>> len(list(affine2(E)))
+        34
 
 #        >>> from numlib import GaloisField
 #        >>> F = GaloisField(5, 2)
@@ -874,25 +868,6 @@ def affine2(E: EllCurve) -> Generator[Tuple(int, int)]:
         fx = E.f(x)
         if fx ** ((q - 1) // 2) == 1:
              yield E(x, y = sqrt(fx, q=q, p=p))
-
-    #if hasattr(coefcls,'char') and coefcls.char and hasattr(coefcls, '__iter__'):
-    #    q = coefcls.order if hasattr(coefcls,'order') else coefcls.char
-    #    if q % 4 == 3:
-    #        for x in coefcls:
-    #            fx = f(x)
-    #            if fx ** ((q - 1) // 2) == 1:
-    #                yield E(x, y = fx ** ((q + 1) // 4))
-    #    else:
-    #        p = coefcls.char
-    #        if q > p:
-    #            return NotImplemented
-    #        else:
-    #            for x in coefcls:
-    #                fx = f(x)
-    #                if fx ** ((p - 1) // 2) == 1:
-    #                    yield E(x, y = sqrt(fx, p))
-    #else:
-    #    return NotImplemented
 
 def frobenious2(E, m):
     """Return the mth iterate of the  q^r-power Frobenius isogeny.

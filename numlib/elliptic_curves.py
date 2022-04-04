@@ -112,11 +112,11 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
     if isinstance(b,Polynomial) and b._degree and b._degree > 0 and b.x.find('(') < 0 and b.x.find(')') < 0:
         bb.x  = '(' + b.x + ')'
 
-    f_ =  Polynomial((bb, aa, one*0, one), 'x', spaces = True, increasing = False)
+    f_ =  Polynomial((bb, aa, one * 0, one), 'x', spaces = True, increasing = False)
 
     class EllipticCurve(type):
 
-        f =  Polynomial((bb, aa, 0*one, one), 'x', increasing = False)
+        f =  Polynomial((bb, aa, one*0, one), 'x', increasing = False)
         disc = -16 * (4 * a ** 3 + 27 * b ** 2)
         j = -110592 * a ** 3 / disc if disc != one * 0 else None
 
