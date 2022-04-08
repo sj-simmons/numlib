@@ -9,8 +9,8 @@ import functools
 import operator
 from itertools import combinations, cycle, product, tee
 from typing import List, Tuple, cast, TypeVar, Generator, Callable
-import polylib
-import numlib
+from polylib import FPolynomial, Field
+import numlib as nl  # fixes circular import
 
 __author__ = "Scott Simmons"
 __version__ = "0.2"
@@ -39,7 +39,11 @@ __license__ = "Apache 2.0"
 #
 #    return abs(b) if a % b == 0 else gcd(b, a % b)
 
-Euclidean = TypeVar('Euclidean', int, 'FPolynomial') # Both Euclidean rings
+F = TypeVar('F', bound='Field_')
+
+#Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]') # Both Euclidean rings
+Euclidean = TypeVar('Euclidean', int, FPolynomial[F]) # Both Euclidean rings
+#Euclidean = TypeVar('Euclidean', int, FPolynomial[Field_]) # Both Euclidean rings
 
 def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
     """Return a greatest common divisor of a and b.
@@ -110,7 +114,7 @@ def lcm(a: Euclidean, b: Euclidean) -> Euclidean:
         >>> print(lcm(p1,p2))
         14 + 35x + x^2 + 4x^3 + x^4 + 23x^5 + 20x^6 + 12x^7 + 40x^8
     """
-    return a * b // gcd(a,b)
+    return (a * b) // gcd(a,b)
 
 def xgcd(a: Euclidean, b: Euclidean) -> Tuple[Euclidean, ...]:
     """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = s*a + t*b.
@@ -208,7 +212,7 @@ def leastdivisor(n:int) -> int:
             return p
     return n
 
-def istrueprime(n:int) -> int:
+def istrueprime(n: int) -> bool:
     """Return True/False according to whether a positive int n  is prime.
 
     This is slow for very large n.
@@ -222,7 +226,7 @@ def istrueprime(n:int) -> int:
     """
     return n > 1 and leastdivisor(n) == n
 
-def isprime(n: int) -> int:
+def isprime(n: int) -> bool:
     """Return True/False according to whether n is likely prime.
 
     Uses a variety of pseudoprime tests. This is fast.
@@ -470,7 +474,7 @@ def divisors_(n: int) -> Generator[int]:
         for fact in set(combinations(facts, r)):
             yield functools.reduce(operator. mul, fact, 1)
 
-def divisors(n: int) -> list[int]:
+def divisors(n: int) -> List[int]:
     """Return sorted, increasing list of divisors > 1."""
 
     return sorted(list(divisors_(n)))
@@ -502,7 +506,7 @@ def addorder_(element: object, possible_orders: List[int]) -> int:
     return possible_orders[-1]
 
 
-def addorder(element: object, exponent = None):
+def addorder(element: object, exponent: Optional[int] = None):
     """Return the additive order of element.
 
     Args:
@@ -603,7 +607,7 @@ def mulorder_(element: object, possible_orders: List[int]) -> int:
         prev_divisor = divisor
     return possible_orders[-1]
 
-def mulorder(element, exponent = None):
+def mulorder(element: object, exponent: Optional[int] = None):
     """Return the order of element.
 
     Args:
@@ -683,21 +687,7 @@ def mulorder(element, exponent = None):
             accum *= element
         return order
 
-def serialize(obj, filename, directory = '.'):
-    filename = ''.join(c for c in filename if c.isalnum())
-    if os.path.exists(directory+'/'+filename):
-        raise ValueError(f"file {directory}/{filename} exists")
-    print('serializing', filename, 'to', directory)
-    pickle.dump(obj , open(directory+'/'+filename, "wb"))
-
-def unserialize(filename, directory = '.'):
-    filename = ''.join(c for c in filename if c.isalnum())
-    if not os.path.exists(directory+'/'+filename):
-        raise ValueError(f"file {directory}/{filename} does not exist")
-    print('unserializing', filename, 'from', directory)
-    return pickle.load(open(directory+'/'+filename, "rb"))
-
-def iproduct(*iterables, repeat=1):
+def iproduct(*iterables, repeat: int = 1):
     """Cartesian product of large or infinite iterables (per MarkCBell)
 
     Examples:
@@ -730,7 +720,7 @@ def iproduct(*iterables, repeat=1):
     yield ()  # There are no iterables.
 
 
-def affine(E: EllCurve) -> Generator[Tuple(int, int)]:
+def affine(E: EllipticCurve) -> Generator[Tuple(int, int)]:
     """Return a generator that yields the affine points of E.
 
     This works fine for small curves. But it pre computes two
@@ -786,7 +776,7 @@ def affine(E: EllCurve) -> Generator[Tuple(int, int)]:
     else:
          return NotImplemented
 
-def sqrt(a, q, p):
+def sqrt(a: F, q: int, p: int) -> F:
     """Return square root of the given square a.
 
     The prime p must be odd, currently.
@@ -810,11 +800,11 @@ def sqrt(a, q, p):
         t = random.randint(0, p-1) * one
         while (t**2-4*a) ** ((p-1)//2) != -1:
             t = random.randint(0, p-1) * one
-        Fp2=numlib.FPmod(polylib.FPolynomial([a, t, one]))
+        Fp2 = nl.FPmod(FPolynomial([a, t, one]))
         x = Fp2([0, 1])
         return  (x**((p+1)//2))[0]
 
-def affine2(E: EllCurve) -> Generator[Tuple(int, int)]:
+def affine2(E: AlgebraicCurve) -> Generator[Tuple[int, int]]:
     """Yield roughly half of the affine points of E.
 
     This yields one of each pair {(x, y), (x, -y)} of points
@@ -869,12 +859,12 @@ def affine2(E: EllCurve) -> Generator[Tuple(int, int)]:
         if fx ** ((q - 1) // 2) == 1:
              yield E(x, y = sqrt(fx, q=q, p=p))
 
-def frobenious2(E, m):
+def frobenious2(E: AlgebraicCurve, m: int):
     """Return the mth iterate of the  q^r-power Frobenius isogeny.
 
     Args:
 
-        E (EllipticCurve): an elliptic curve over a finite field
+        E (AlgebraicCurve): an elliptic curve over a finite field
             K of order q^r where q = p^n and E is defined in terms
             of short Weierstrauss coefficients a and b in the ord-
             er q subfield of K.
@@ -951,12 +941,12 @@ def frobenious2(E, m):
     return lambda pt: E(*tuple(map(PF_frob, tuple(pt.co))))
 
 
-def frobenious(E, r):
+def frobenious(E: AlgebraicCurve, r: int):
     """Return the q^r-power Frobenious isogeny.
 
     Args:
 
-        E (EllipticCurve): an elliptic curve over a finite field
+        E (AlgebraicCurve): an elliptic curve over a finite field
             K of order q = p^n.
 
         r (int): a positive integer.
@@ -1020,13 +1010,27 @@ def frobenious(E, r):
         >>> print(f"{pt} maps to {frob(pt)}")
         (-3t^2-2t-2, -3t^2-2t-2) maps to (-t^2+2t+3, -t^2+2t+3)
     """
-    from numlib import EllCurve
     b = E.f(0)
     a = E.f.derivative()(0)
     pr = E.j.char**r
-    E_codomain = EllCurve(a**pr, b**pr)
+    E_codomain = nl.EllCurve(a**pr, b**pr)
     F = lambda x: x**pr
     return lambda pt: E_codomain(*tuple(map(F, tuple(pt.co))))
+
+def serialize(obj, filename: str, directory: str = '.'):
+    filename = ''.join(c for c in filename if c.isalnum())
+    if os.path.exists(directory+'/'+filename):
+        raise ValueError(f"file {directory}/{filename} exists")
+    print('serializing', filename, 'to', directory)
+    pickle.dump(obj , open(directory+'/'+filename, "wb"))
+
+def unserialize(filename: str, directory: str = '.'):
+    filename = ''.join(c for c in filename if c.isalnum())
+    if not os.path.exists(directory+'/'+filename):
+        raise ValueError(f"file {directory}/{filename} does not exist")
+    print('unserializing', filename, 'from', directory)
+    return pickle.load(open(directory+'/'+filename, "rb"))
+
 
 if __name__ == "__main__":
 

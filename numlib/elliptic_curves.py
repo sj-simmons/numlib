@@ -1,5 +1,6 @@
-from polylib.polynomial import Field
-from polylib import Polynomial
+from __future__ import annotations
+from polylib import Field, Polynomial
+from typing import Type, cast, Tuple, TypeVar, Union
 import copy
 
 __author__ = "Scott Simmons"
@@ -30,7 +31,27 @@ class AlgebraicCurve:
 #        pass
 
 
-def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
+class EllipticCurve(AlgebraicCurve):
+    j: Field
+    disc: Field
+    def __init__(self) -> None:
+        self.co: Tuple[Field, Field, Field]
+
+    def __add__(self, other: EllipticCurve) -> EllipticCurve:
+        pass
+
+    def __mul__(self, other: int) -> EllipticCurve:
+        pass
+
+    def double(self) -> EllipticCurve:
+        pass
+
+#class Weierstrass(EllipticCurve):
+#    pass
+
+F = TypeVar('F', bound=Field)
+
+def EllCurve(a: F, b: F, debug = False) -> Type[EllipticCurve]:
     """Return a class whose instances are elements of y^2=x^3+ax+b.
 
     This implements an elliptic curve in Weierstrauss form. The returned
@@ -44,7 +65,7 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
         >>> E = EllCurve(GF(1), GF(1), debug = True)
         >>> E
         y^2 = x^3 + x + 1 over Z/7
-        >>> E.j  # the j-invariant for the curve
+        >>> E.j  # the j-invariant of the curve
         1 + <7>
 
         When defining points on E, the type of the coefficient is inferred:
@@ -103,6 +124,7 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
     global Weierstrass
 
     one = (a*b)**0
+    zero = one * cast(F, 0)
 
     aa = copy.copy(a)
     if isinstance(a,Polynomial) and a._degree and a._degree > 0 and a.x.find('(') < 0 and a.x.find(')') < 0:
@@ -112,13 +134,13 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
     if isinstance(b,Polynomial) and b._degree and b._degree > 0 and b.x.find('(') < 0 and b.x.find(')') < 0:
         bb.x  = '(' + b.x + ')'
 
-    f_ =  Polynomial((bb, aa, one * 0, one), 'x', spaces = True, increasing = False)
+    f_ =  Polynomial((bb, aa, zero, one), 'x', spaces = True, increasing = False)
 
-    class EllipticCurve(type):
+    class Weierstrass_(type):
 
-        f =  Polynomial((bb, aa, one*0, one), 'x', increasing = False)
-        disc = -16 * (4 * a ** 3 + 27 * b ** 2)
-        j = -110592 * a ** 3 / disc if disc != one * 0 else None
+        f =  Polynomial((bb, aa, zero, one), 'x', increasing = False)
+        disc = cast(F, -16) * (cast(F, 4) * a ** 3 + cast(F, 27) * b ** 2)
+        j = cast(F, -110592) * a ** 3 / disc if disc != zero else None
 
         @classmethod
         def __repr__(self):
@@ -140,9 +162,11 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
         #    else:
         #        return s
 
-    class Weierstrass(AlgebraicCurve, metaclass = EllipticCurve):
 
-        def __init__(self, x = 0, y = 0, z = None):
+
+    class Weierstrass(EllipticCurve, metaclass = Weierstrass_):
+
+        def __init__(self, x = zero, y = zero, z = None) -> None:
             """projective coordinates [x: y: z]"""
 
             z = one if z is None else z
@@ -150,7 +174,7 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
             #x = one * x; y = one * y; z = one * z
 
             if debug:
-                if z != 0*one:
+                if z != zero:
                     if (y/z)**2 != f_(x/z):
                         raise ValueError(
                             (f"({x/z}, {y/z}) = [{x}: {y}: {z}] is not on y^2 = {f_}: "
@@ -158,11 +182,11 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
                         )
                 else:
                     if not (x == 0 and y != 0):
-                        raise ValueError(f"[{x}: {y}: {z}] is not on {y2} = {f}")
+                        raise ValueError(f"[{x}: {y}: {z}] is not on {y**2} = {f_}")
 
             self.co = (x, y, z)
 
-        def __add__(self: EllCurve, other: EllCurve) -> EllCurve:
+        def __add__(self, other: EllipticCurve) -> EllipticCurve:
 
             # compare with eq below and fix this
             if other.co[2] == 0:
@@ -187,7 +211,9 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
 
             return self.__class__(u * w, t * (u0 * u2 - w) - t0 * u3, u3 * v)
 
-        def __eq__(self, other):
+        def __eq__(self, other: object) -> bool:
+            if not isinstance (other, EllipticCurve):
+                return NotImplemented
             if other == 0:
                 return self.co[2] == 0
             if self.co[2] ==  0 == other.co[2]:
@@ -198,7 +224,7 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
                 return all([self.co[i]/self.co[2] == other.co[i]/other.co[2] for i in range(2)])
             return False
 
-        def __mul__(self: EllCurve, n: int) -> EllCurve:
+        def __mul__(self, n: int) -> EllipticCurve:
             if n == 0:
                 return self.__class__(0, 1 ,0)
             elif n == 1:
@@ -209,7 +235,7 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
             else:
                 return self + factor.double()
 
-        def double(self):
+        def double(self) -> EllipticCurve:
             if self.co[2] == 0 or self.co[1] == 0:
                 return self.__class__(0,1,0)
             else:
@@ -222,31 +248,31 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
                     t * (v - w) - 2 * (u * self.co[1]) ** 2,
                     u**3)
 
-        def __rmul__(self: EllCurve, n: int) -> EllCurve:
+        def __rmul__(self, n: int) -> EllipticCurve:
             return  self.__mul__(n)
 
-        def __neg__(self):
+        def __neg__(self) -> EllipticCurve:
             if self.co[2] == 0 or self.co[1] == 0:
                 return self
             else:
                 return self.__class__(self.co[0], -self.co[1], self.co[2])
 
-        def __sub__(self: EllCurve, other: EllCurve):
+        def __sub__(self, other: EllipticCurve) -> EllipticCurve:
             return self.__add__ (-other)
 
-        def __str__(self):
+        def __str__(self: EllipticCurve) -> str:
             if self.co[2] == 0:
                 return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}]"
             else:
                 return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]})"
 
-        def __repr__(self):
+        def __repr__(self: EllipticCurve) -> str:
             if self.co[2] == 0:
                 return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}] on {self.__class__}"
             else:
                 return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]}) on {self.__class__}"
 
-        def __hash__(self) -> int:
+        def __hash__(self: EllipticCurve) -> int:
             # need to hash unique coords so do something like this:
             if self == 0:
                 return hash((self.co[2], self.co[2]))
@@ -255,10 +281,10 @@ def EllCurve(a: Field, b: Field, debug = False) -> AlgebraicCurve:
 
     return Weierstrass
 
-def Edwards(a: Field, b: Field) -> AlgebraicCurve:
+def Edwards(a: F, b: F) -> AlgebraicCurve:
     pass
 
-def Montgomery(a: Field, d: Field) -> AlgebraicCurve:
+def Montgomery(a: F, d: F) -> AlgebraicCurve:
     pass
 
 if __name__ == "__main__":
