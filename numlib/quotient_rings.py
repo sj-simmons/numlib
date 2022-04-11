@@ -74,9 +74,9 @@ def Zmod(
         >>> print(R)
         Z/143
         >>> R(2)**8
-        113 + <143>
+        -30 + <143>
         >>> R(3)*R(4)**-1
-        108 + <143>
+        -35 + <143>
         >>> R(13)**-1  # Z/13 has zero divisors
         Traceback (most recent call last):
         AssertionError: 13 is not invertible modulo 143
@@ -91,16 +91,17 @@ def Zmod(
 
         >>> x = R()  # same as x=polylib.Polynomial([R(0),R(1)])
         >>> print(3*x**2 + 5*x + 100)
-        3x^2+5x+100
+        3x^2+5x-43
         >>> 3*x**2 + 5*x + 100
-        Polynomial((100 + <143>, 5 + <143>, 3 + <143>))
+        Polynomial((-43 + <143>, 5 + <143>, 3 + <143>))
 
-        >>> R = Zmod(143, indet = 'y', spaces = True, increasing = False)
+        >>> R = Zmod(143, indet='y', spaces=True, increasing=False)
         >>> y = R()
         >>> print(3*y**2 + 5*y + 100)
-        3y^2 + 5y + 100
+        3y^2 + 5y - 43
 
-        >>> R = Zmod(143, indet = 'y', increasing = True); y = R()
+        >>> R = Zmod(143, negatives=False, indet='y', increasing=True)
+        >>> y = R()
         >>> print(3*y**2+5*y+100)
         100+5y+3y^2
     """
@@ -275,7 +276,7 @@ def Zmodp(
 
     Examples (see also the examples for Zmod):
 
-        >>> F = Zmodp(43)  # the field of integers modulo 43
+        >>> F = Zmodp(43, negatives=False)  # the integers modulo 43
         >>> print(F)
         Z/43
 
@@ -628,7 +629,7 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
         cubic polynomial monic:
 
         >>> monic(t)  #  0 + <2 + 4t + t^3> = <2 + 4t + t^3>
-        <2 + 4t + t^3>
+        <2 - t + t^3>
 
         Morevover, monic is a polynomial with coeffiecients in GF(5^3)'s
         prime field; hence, {1, t, t^2} is a basis for GF(5^3) over GF(5)
@@ -692,8 +693,8 @@ def FPmod(fpoly: FPolynomial) -> Type[FPolynomial]:
 
         >>> e = (m2*p2)(t)
         >>> e; 1-e
-        4 + t + 4t^3 + <1 + 3t + 4t^2 + 2t^3 + 3t^4 + t^5>
-        2 + 4t + t^3 + <1 + 3t + 4t^2 + 2t^3 + 3t^4 + t^5>
+        -1 + t - t^3 + <1 - 2t - t^2 + 2t^3 - 2t^4 + t^5>
+        2 - t + t^3 + <1 - 2t - t^2 + 2t^3 - 2t^4 + t^5>
 
         Since (e*t)^n = e*t^n, the order of e*t in the left summand,
         <m2*p2>/<p1*p2> is 5^3-1:
@@ -1014,7 +1015,7 @@ def GaloisField(p: int, r: int = 1, negatives=True, indet="t") -> Type[FPolynomi
         >>> GF
         Z/17
         >>> GF(9)
-        9 + <17>
+        -8 + <17>
 
         Case: r > 1
 

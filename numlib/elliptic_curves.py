@@ -85,16 +85,16 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
 
         >>> pt = E(2, 5)  # No need for E(GF(2), GF(5))
         >>> pt
-        (2, 5) on y^2 = x^3 + x + 1 over Z/7
+        (2, -2) on y^2 = x^3 + x + 1 over Z/7
         >>> print(pt)
-        (2, 5)
+        (2, -2)
         >>> print(-pt)
         (2, 2)
 
         The point at infinity, (0: 1: 0), is the identity; for instance:
 
         >>> print(E(0,1,0) + E(2,5))
-        (2, 5)
+        (2, -2)
 
         Points are in displayed non-homogeneous coordinates, except for
         the point at infinity:
@@ -115,7 +115,7 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
         ...         print(E(*pair), end=', ')
         ...     except:
         ...         pass
-        (0, 1), (2, 2), (2, 5), (0, 6), ...
+        (0, -1), (0, 1), (2, -2), (2, 2), ...
 
         Alternatively,
 
@@ -128,8 +128,8 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
 
         >>> for i in range(1, 6):
         ...     print(i * (E(2, 5)))
-        (2, 5)
-        (0, 6)
+        (2, -2)
+        (0, -1)
         (0, 1)
         (2, 2)
         [0: 1: 0]

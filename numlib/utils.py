@@ -75,11 +75,11 @@ def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
         >>> p1 = 33 * (x - 3) * (7 * x + 6) * (5 * x**4 - 9)
         >>> p2 = 100 * (x - 8) * (7 * x + 6) * (x**2 - 11)
         >>> print('p1 = '+str(p1)); print('p2 = '+str(p2))
-        p1 = 14 + 26x + 28x^2 + 40x^4 + 19x^5 + 37x^6
-        p2 = 39 + 3x + 13x^2 + 31x^3 + 12x^4
+        p1 = 14 - 17x - 15x^2 - 3x^4 + 19x^5 - 6x^6
+        p2 = -4 + 3x + 13x^2 - 12x^3 + 12x^4
         >>> g = gcd(p1, p2)
         >>> print(g)  # a gcd
-        30 + 35x
+        -13 - 8x
         >>> print(g * g[-1]**-1)  # the unique monic gcd
         7 + x
 
@@ -116,7 +116,7 @@ def lcm(a: Euclidean, b: Euclidean) -> Euclidean:
         >>> p1 = 33 * (x - 3) * (7 * x + 6) * (5*x**3 - 9)
         >>> p2 = 100 * (x - 8) * (7 * x + 6) * (x**2 - 11)
         >>> print(lcm(p1,p2))
-        14 + 35x + x^2 + 4x^3 + x^4 + 23x^5 + 20x^6 + 12x^7 + 40x^8
+        14 - 8x + x^2 + 4x^3 + x^4 - 20x^5 + 20x^6 + 12x^7 - 3x^8
     """
     return (a * b) // gcd(a, b)
 
@@ -138,9 +138,9 @@ def xgcd(a: Euclidean, b: Euclidean) -> Tuple[Euclidean, ...]:
         >>> x = FPolynomial([0, GF(1)])  # indeterimant for Z/34Z[x]
         >>> p1 = 8 + 100*x**2 + x**4; p2 = 30 + 26*x**3
         >>> print('p1 = '+str(p1)+';  p2 = '+str(p2))
-        p1 = 8 + 14x^2 + x^4;  p2 = 30 + 26x^3
+        p1 = 8 + 14x^2 + x^4;  p2 = -13 - 17x^3
         >>> print(",  ".join([str(poly) for poly in xgcd(p1, p2)]))
-        40,  42 + 2x + 7x^2,  36 + 31x + 33x^2 + 8x^3
+        -3,  -1 + 2x + 7x^2,  -7 - 12x - 10x^2 + 8x^3
 
         >>> from fractions import Fraction    # generate polynomials
         >>> x = FPolynomial([0, Fraction(1)]) # over the rationals
