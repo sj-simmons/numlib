@@ -1,4 +1,6 @@
-from __future__ import annotations  # for TYPE_CHECKING to work below; remove Python 3.9?
+from __future__ import (
+    annotations,
+)  # for TYPE_CHECKING to work below; remove Python 3.9?
 import os
 import pickle
 import random
@@ -8,8 +10,8 @@ import decimal
 import functools
 import operator
 from itertools import combinations, cycle, product, tee
-from typing import List, Tuple, cast, TypeVar, Generator, Callable
-from polylib import FPolynomial, Field
+from typing import List, Tuple, cast, TypeVar, Generator, Callable, Optional
+from polylib import FPolynomial, Field, Ring
 import numlib as nl  # fixes circular import
 
 __author__ = "Scott Simmons"
@@ -33,17 +35,18 @@ __copyright__ = """
 """
 __license__ = "Apache 2.0"
 
-#def gcd(a: int, b: int) -> int:
+# def gcd(a: int, b: int) -> int:
 #    if b == 0:
 #        return abs(a)
 #
 #    return abs(b) if a % b == 0 else gcd(b, a % b)
 
-F = TypeVar('F', bound='Field_')
+R = TypeVar("R", bound=Ring)
+F = TypeVar("F", bound=Field)
 
-#Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]') # Both Euclidean rings
-Euclidean = TypeVar('Euclidean', int, FPolynomial[F]) # Both Euclidean rings
-#Euclidean = TypeVar('Euclidean', int, FPolynomial[Field_]) # Both Euclidean rings
+Euclidean = TypeVar("Euclidean", int, FPolynomial[F])  # Both are Euclidean rings
+# Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]') # Both Euclidean rings
+
 
 def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
     """Return a greatest common divisor of a and b.
@@ -100,6 +103,7 @@ def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
 
     return b if a % b == 0 else gcd(b, a % b)
 
+
 def lcm(a: Euclidean, b: Euclidean) -> Euclidean:
     """Return a least common multiple of a and b.
 
@@ -114,7 +118,8 @@ def lcm(a: Euclidean, b: Euclidean) -> Euclidean:
         >>> print(lcm(p1,p2))
         14 + 35x + x^2 + 4x^3 + x^4 + 23x^5 + 20x^6 + 12x^7 + 40x^8
     """
-    return (a * b) // gcd(a,b)
+    return (a * b) // gcd(a, b)
+
 
 def xgcd(a: Euclidean, b: Euclidean) -> Tuple[Euclidean, ...]:
     """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = s*a + t*b.
@@ -147,8 +152,10 @@ def xgcd(a: Euclidean, b: Euclidean) -> Tuple[Euclidean, ...]:
         502681/26411x,  9096/2401 - 675/343x + 45/49x^2 - 3/7x^3,  1
     """
 
-    s0 = cast(Euclidean, 1); s1 = cast(Euclidean, 0)
-    t0 = cast(Euclidean, 0); t1 = cast(Euclidean, 1)
+    s0 = cast(Euclidean, 1)
+    s1 = cast(Euclidean, 0)
+    t0 = cast(Euclidean, 0)
+    t1 = cast(Euclidean, 1)
     while True:
         quot = -(a // b)
         a = a % b
@@ -164,9 +171,9 @@ def xgcd(a: Euclidean, b: Euclidean) -> Tuple[Euclidean, ...]:
             return (a, s0, t0)
 
     # Below, the original, works fine, save typing
-    #s = [1, 0]
-    #t = [0, 1]
-    #while True:
+    # s = [1, 0]
+    # t = [0, 1]
+    # while True:
     #    quot = -(a // b)
     #    a = a % b
     #    s[0] += quot * s[1] #type: ignore
@@ -196,7 +203,8 @@ def sieve(n: int = 1000000) -> Tuple[int, ...]:
                 sieve[i] = False
     return tuple(primes)
 
-def leastdivisor(n:int) -> int:
+
+def leastdivisor(n: int) -> int:
     """Return smallest prime factor > 1 of n > 1.
 
     Examples:
@@ -207,10 +215,11 @@ def leastdivisor(n:int) -> int:
         2027
     """
     assert n > 1
-    for p in sieve(int(decimal.Decimal(n).sqrt()+1)):
+    for p in sieve(int(decimal.Decimal(n).sqrt() + 1)):
         if n % p == 0:
             return p
     return n
+
 
 def istrueprime(n: int) -> bool:
     """Return True/False according to whether a positive int n  is prime.
@@ -225,6 +234,7 @@ def istrueprime(n: int) -> bool:
         False
     """
     return n > 1 and leastdivisor(n) == n
+
 
 def isprime(n: int) -> bool:
     """Return True/False according to whether n is likely prime.
@@ -249,7 +259,7 @@ def isprime(n: int) -> bool:
 def isprimeF(n: int, b: int) -> bool:
     """True if n is prime or a Fermat pseudoprime to base b."""
 
-    return pow(b, n - 1, n) == 1
+    return cast(int, pow(b, n - 1, n)) == 1
 
 
 def isprimeE(n: int, b: int) -> bool:
@@ -342,6 +352,7 @@ def factorPR(n: int) -> int:
                     return g
     return 1
 
+
 def truephi(n: int) -> int:
     """Return the number of positive integers less than and coprime to n.
 
@@ -397,6 +408,7 @@ def phi(n: int) -> int:
             prevfact = fact
     return phi_
 
+
 def mu(n: int) -> int:
     """Return the value of the Moebius function on n.
 
@@ -422,7 +434,8 @@ def mu(n: int) -> int:
         len_ = len(facts)
         if len(set(facts)) < len_:
             return 0
-        return (-1)**len_
+        return cast(int, (-1) ** len_)
+
 
 def truemu(n: int) -> int:
     """Return the value of the Moebius function on n.
@@ -445,7 +458,7 @@ def truemu(n: int) -> int:
     if n == 1:
         return 1
     else:
-        #return -reduce(add, [mu(d) for d in range(2, n) if n % d == 0], 1)
+        # return -reduce(add, [mu(d) for d in range(2, n) if n % d == 0], 1)
         # below is faster (for all n?)
         count = 1
         prevfact = leastdivisor(n)
@@ -457,9 +470,10 @@ def truemu(n: int) -> int:
             count += 1
             n //= factor
             prevfact = factor
-        return (-1)**count
+        return cast(int, (-1) ** count)
 
-def divisors_(n: int) -> Generator[int]:
+
+def divisors_(n: int) -> Generator[int, None, None]:
     """Return all divisors greater than 1.
 
     Examples:
@@ -470,16 +484,18 @@ def divisors_(n: int) -> Generator[int]:
         [2, 3, 4, 6, 12]
     """
     facts = factor(n)
-    for r in range(1, len(facts)+1):
+    for r in range(1, len(facts) + 1):
         for fact in set(combinations(facts, r)):
-            yield functools.reduce(operator. mul, fact, 1)
+            yield functools.reduce(operator.mul, fact, 1)
+
 
 def divisors(n: int) -> List[int]:
     """Return sorted, increasing list of divisors > 1."""
 
     return sorted(list(divisors_(n)))
 
-def addorder_(element: object, possible_orders: List[int]) -> int:
+
+def addorder_(element: R, possible_orders: List[int]) -> int:
     """Helper for addorder that accepts a list of possible orders.
 
     Args:
@@ -493,7 +509,7 @@ def addorder_(element: object, possible_orders: List[int]) -> int:
 
         (int). The additive order.
     """
-    identity = 0*element
+    identity = 0 * element
     accum = copy.copy(element)
     if element == identity:
         return 1
@@ -506,7 +522,7 @@ def addorder_(element: object, possible_orders: List[int]) -> int:
     return possible_orders[-1]
 
 
-def addorder(element: object, exponent: Optional[int] = None):
+def addorder(element: R, exponent: Optional[int] = None) -> int:
     """Return the additive order of element.
 
     Args:
@@ -573,7 +589,7 @@ def addorder(element: object, exponent: Optional[int] = None):
     if exponent:
         return addorder_(element, divisors(exponent))
     else:
-        identity = 0*element
+        identity = 0 * element
         accum = copy.copy(element)
         order = 1
         while accum != identity:
@@ -581,7 +597,8 @@ def addorder(element: object, exponent: Optional[int] = None):
             accum += element
         return order
 
-def mulorder_(element: object, possible_orders: List[int]) -> int:
+
+def mulorder_(element: R, possible_orders: List[int]) -> int:
     """Helper for mulorder that accepts a list of possible orders.
 
     Args:
@@ -607,7 +624,8 @@ def mulorder_(element: object, possible_orders: List[int]) -> int:
         prev_divisor = divisor
     return possible_orders[-1]
 
-def mulorder(element: object, exponent: Optional[int] = None):
+
+def mulorder(element: R, exponent: Optional[int] = None):
     """Return the order of element.
 
     Args:
@@ -687,6 +705,7 @@ def mulorder(element: object, exponent: Optional[int] = None):
             accum *= element
         return order
 
+
 def iproduct(*iterables, repeat: int = 1):
     """Cartesian product of large or infinite iterables (per MarkCBell)
 
@@ -702,7 +721,11 @@ def iproduct(*iterables, repeat: int = 1):
         True
     """
 
-    iterables = [item for row in zip(*(tee(iterable, repeat) for iterable in iterables)) for item in row]
+    iterables = [
+        item
+        for row in zip(*(tee(iterable, repeat) for iterable in iterables))
+        for item in row
+    ]
     N = len(iterables)
     saved = [[] for _ in range(N)]  # All the items that we have seen of each iterable.
     exhausted = set()  # The set of indices of iterables that have been exhausted.
@@ -711,16 +734,18 @@ def iproduct(*iterables, repeat: int = 1):
             continue
         try:
             item = next(iterables[i])
-            yield from product(*saved[:i], [item], *saved[i+1:])  # Finite product.
+            yield from product(*saved[:i], [item], *saved[i + 1 :])  # Finite product.
             saved[i].append(item)
         except StopIteration:
             exhausted.add(i)
-            if not saved[i] or len(exhausted) == N:  # Product is empty or all iterables exhausted.
+            if (
+                not saved[i] or len(exhausted) == N
+            ):  # Product is empty or all iterables exhausted.
                 return
     yield ()  # There are no iterables.
 
 
-def affine(E: EllipticCurve) -> Generator[Tuple(int, int)]:
+def affine(E: nl.EllipticCurve[F]) -> Generator[Tuple[int, int], None, None]:
     """Return a generator that yields the affine points of E.
 
     This works fine for small curves. But it pre computes two
@@ -752,17 +777,19 @@ def affine(E: EllipticCurve) -> Generator[Tuple(int, int)]:
         34
     """
     coefcls = E.disc.__class__
-    b = E.f(0)
-    a = E.f.derivative()(0)
+    # b = E.f(0)
+    # a = E.f.derivative()(0)
+    b = E.f[0]
+    a = E.f[1]
 
-    if hasattr(coefcls,'char') and coefcls.char and hasattr(coefcls, '__iter__'):
+    if hasattr(coefcls, "char") and coefcls.char and hasattr(coefcls, "__iter__"):
 
-        y2s = {} # map all squares y2 in the field k to {y | y^2 = y2}
+        y2s = {}  # map all squares y2 in the field k to {y | y^2 = y2}
         fs = {}  # map all outputs fs = f(x), x in k, to {x | f(x) = fs}
 
         # build y2s and fs
         for x in coefcls:
-            x2 = x ** 2
+            x2 = x**2
             y2s.setdefault(x2, []).append(x)
             fs.setdefault(x2 * x + a * x + b, []).append(x)
 
@@ -771,10 +798,11 @@ def affine(E: EllipticCurve) -> Generator[Tuple(int, int)]:
             for f in fs.keys():
                 if y2 == f:
                     for x in fs[f]:
-                        for y in  y2s[y2]:
+                        for y in y2s[y2]:
                             yield E(x, y)
     else:
-         return NotImplemented
+        return NotImplemented
+
 
 def sqrt(a: F, q: int, p: int) -> F:
     """Return square root of the given square a.
@@ -792,74 +820,78 @@ def sqrt(a: F, q: int, p: int) -> F:
         (Field). An element of F whose square is the given a.
     """
     if q % 4 == 3:
-        return a**((q+1)//4)
+        return a ** ((q + 1) // 4)
     elif q > p:
         return NotImplemented
     else:
         one = a**0
-        t = random.randint(0, p-1) * one
-        while (t**2-4*a) ** ((p-1)//2) != -1:
-            t = random.randint(0, p-1) * one
+        t = random.randint(0, p - 1) * one
+        while (t**2 - 4 * a) ** ((p - 1) // 2) != -1:
+            t = random.randint(0, p - 1) * one
         Fp2 = nl.FPmod(FPolynomial([a, t, one]))
         x = Fp2([0, 1])
-        return  (x**((p+1)//2))[0]
+        return (x ** ((p + 1) // 2))[0]
 
-def affine2(E: AlgebraicCurve) -> Generator[Tuple[int, int]]:
+
+def affine2(E: nl.EllipticCurve[F]) -> Generator[Tuple[int, int], None, None]:
     """Yield roughly half of the affine points of E.
 
-    This yields one of each pair {(x, y), (x, -y)} of points
-    not on the line y=0 and works by checking if f(x) is a
-    quadratic residue where y^2 = f(x) defines E. If f(x) is
-    a quadratic residue then one of the corresponding points
-    on the curve is yielded.
+        This yields one of each pair {(x, y), (x, -y)} of points
+        not on the line y=0 and works by checking if f(x) is a
+        quadratic residue where y^2 = f(x) defines E. If f(x) is
+        a quadratic residue then one of the corresponding points
+        on the curve is yielded.
 
-    Examples:
+        Examples:
 
-        >>> from numlib import Zmodp, EllCurve
+            >>> from numlib import Zmodp, EllCurve
 
-        >>> F = Zmodp(71)
-        >>> E = EllCurve(F(2), F(3)); E
-        y^2 = x^3 + 2x + 3 over Z/71
-        >>> len(list(affine2(E)))
-        42
-        >>> E.disc
-        2 + <71>
+            >>> F = Zmodp(71)
+            >>> E = EllCurve(F(2), F(3)); E
+            y^2 = x^3 + 2x + 3 over Z/71
+            >>> len(list(affine2(E)))
+            42
+            >>> E.disc
+            2 + <71>
 
-        The curve E above is non-singular and in fact has 3
-        points with y-coordinate equal to 0 so that, in tot-
-        al, that curve has 2 * 42 + 3 = 87 finite points.
+            The curve E above is non-singular and in fact has 3
+            points with y-coordinate equal to 0 so that, in tot-
+            al, that curve has 2 * 42 + 3 = 87 finite points.
 
-        The curve below has only one point with y=0; hence
-        it has 2 * 34 + 1 = 79 finite points.
+            The curve below has only one point with y=0; hence
+            it has 2 * 34 + 1 = 79 finite points.
 
-        >>> F = Zmodp(73)
-        >>> E = EllCurve(F(2), F(3), debug = True)
-        >>> E.disc != 0
-        True
-        >>> aff = affine2(E)
-        >>> len(list(affine2(E)))
-        34
+            >>> F = Zmodp(73)
+            >>> E = EllCurve(F(2), F(3), debug = True)
+            >>> E.disc != 0
+            True
+            >>> aff = affine2(E)
+            >>> len(list(affine2(E)))
+            34
 
-#        >>> from numlib import GaloisField
-#        >>> F = GaloisField(5, 2)
-#        >>> t = F()
-#        >>> E = EllCurve(2+t, 4*t**0); E
-#        y^2 = x^3 + (t+2)x - 1 over Z/5[t]/<t^2+t+2>
-#        >>> len({pt for pt in affine2(E)})  # TODO: implement this
-#        0
+    #        >>> from numlib import GaloisField
+    #        >>> F = GaloisField(5, 2)
+    #        >>> t = F()
+    #        >>> E = EllCurve(2+t, 4*t**0); E
+    #        y^2 = x^3 + (t+2)x - 1 over Z/5[t]/<t^2+t+2>
+    #        >>> len({pt for pt in affine2(E)})  # TODO: implement this
+    #        0
     """
     coefcls = E.disc.__class__
     p = coefcls.char
-    q = p if not hasattr(coefcls,'order') else coefcls.order
-    if  q % 2 == 0:
+    q = p if not hasattr(coefcls, "order") else coefcls.order
+    if q % 2 == 0:
         return NotImplemented
 
     for x in coefcls:
         fx = E.f(x)
         if fx ** ((q - 1) // 2) == 1:
-             yield E(x, y = sqrt(fx, q=q, p=p))
+            yield E(x, y=sqrt(fx, q=q, p=p))
 
-def frobenious2(E: AlgebraicCurve, m: int):
+
+def frobenious2(
+    E: nl.EllipticCurve[F], m: int
+) -> Callable[[nl.EllipticCurve[F]], nl.EllipticCurve[F]]:
     """Return the mth iterate of the  q^r-power Frobenius isogeny.
 
     Args:
@@ -935,14 +967,18 @@ def frobenious2(E: AlgebraicCurve, m: int):
     PF = E.j.__class__
     t = PF()
     if PF.char == t.char:  # then the primefield is Z/p
-        PF_frob = lambda x: x**(PF.char ** m)
+        PF_frob = lambda x: x ** (PF.char**m)
     else:  # the primefield is an extension of Z/p
-        PF_frob = lambda x: x**(PF.order//PF.char ** m)
+        PF_frob = lambda x: x ** (PF.order // PF.char**m)
     return lambda pt: E(*tuple(map(PF_frob, tuple(pt.co))))
 
 
-def frobenious(E: AlgebraicCurve, r: int):
+def frobenious(
+    E: nl.EllipticCurve[F], r: int
+) -> Callable[[nl.EllipticCurve[F]], nl.EllipticCurve[F]]:
     """Return the q^r-power Frobenious isogeny.
+
+    E must be Weierstrass curve. TODO: Generalize.
 
     Args:
 
@@ -1010,26 +1046,30 @@ def frobenious(E: AlgebraicCurve, r: int):
         >>> print(f"{pt} maps to {frob(pt)}")
         (-3t^2-2t-2, -3t^2-2t-2) maps to (-t^2+2t+3, -t^2+2t+3)
     """
-    b = E.f(0)
-    a = E.f.derivative()(0)
+    # b = E.f(0)
+    # a = E.f.derivative()(0)
+    b = E.f[0]
+    a = E.f[1]
     pr = E.j.char**r
     E_codomain = nl.EllCurve(a**pr, b**pr)
     F = lambda x: x**pr
     return lambda pt: E_codomain(*tuple(map(F, tuple(pt.co))))
 
-def serialize(obj, filename: str, directory: str = '.'):
-    filename = ''.join(c for c in filename if c.isalnum())
-    if os.path.exists(directory+'/'+filename):
-        raise ValueError(f"file {directory}/{filename} exists")
-    print('serializing', filename, 'to', directory)
-    pickle.dump(obj , open(directory+'/'+filename, "wb"))
 
-def unserialize(filename: str, directory: str = '.'):
-    filename = ''.join(c for c in filename if c.isalnum())
-    if not os.path.exists(directory+'/'+filename):
+def serialize(obj: object, filename: str, directory: str = ".") -> None:
+    filename = "".join(c for c in filename if c.isalnum())
+    if os.path.exists(directory + "/" + filename):
+        raise ValueError(f"file {directory}/{filename} exists")
+    print("serializing", filename, "to", directory)
+    pickle.dump(obj, open(directory + "/" + filename, "wb"))
+
+
+def unserialize(filename: str, directory: str = ".") -> object:
+    filename = "".join(c for c in filename if c.isalnum())
+    if not os.path.exists(directory + "/" + filename):
         raise ValueError(f"file {directory}/{filename} does not exist")
-    print('unserializing', filename, 'from', directory)
-    return pickle.load(open(directory+'/'+filename, "rb"))
+    print("unserializing", filename, "from", directory)
+    return pickle.load(open(directory + "/" + filename, "rb"))
 
 
 if __name__ == "__main__":
