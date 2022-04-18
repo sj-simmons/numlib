@@ -1,7 +1,7 @@
 from copy import copy
-from typing import NewType, Type
+from typing import NewType, Type, Union, Any, TypeVar, Optional, overload
 from numlib import isprime, gcd, xgcd, iproduct, divisors, mulorder_
-from polylib import Polynomial, FPolynomial
+from polylib.polynomial import Polynomial, FPolynomial, Ring, Field
 
 __author__ = "Scott Simmons"
 __version__ = "0.2"
@@ -28,14 +28,48 @@ __license__ = "Apache 2.0"
 
 # ModularInt = NewType("ModularInt", int)
 
+# doesn't matter:
+#RR = TypeVar('RR', int, Ring)
+#FF = TypeVar('FF', int, Field)
+#RETR = TypeVar('RETR', bound=Ring)
+#RETF = TypeVar('RETF', bound=Field)
 
-class Z_Mod:
+
+class Z_Mod(int):
     char: int
 
+    #def __new__(cls, value: int) -> 'Z_Mod':
+    #    pass
 
-class Z_ModP:
+    def __add__(self, other: Union[int, 'Z_Mod']) -> 'Z_Mod':
+        pass
+
+    def __sub__(self, other: Union[int, 'Z_Mod']) -> 'Z_Mod':
+        pass
+
+    def __mul__(self, other: Union[int, 'Z_Mod']) -> 'Z_Mod':
+        pass
+
+    def __truediv__(self, other: Union[int, 'Z_Mod']) -> Optional['Z_Mod']:
+        pass
+
+class Z_ModP(int):
     char: int
 
+    #def __new__(cls, value: int) -> 'Z_ModP':
+    #    pass
+
+    def __add__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+        pass
+
+    def __sub__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+        pass
+
+    def __mul__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+        pass
+
+    def __truediv__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+        pass
 
 def Zmod(
     n: int,
@@ -77,9 +111,8 @@ def Zmod(
         -30 + <143>
         >>> R(3)*R(4)**-1
         -35 + <143>
-        >>> R(13)**-1  # Z/13 has zero divisors
-        Traceback (most recent call last):
-        AssertionError: 13 is not invertible modulo 143
+        >>> print(R(13)**-1)  # Z/143 has zero divisors
+        None
         >>> len(R)  # R is a class but also a generator
         143
         >>> len(list(R.units()))  # Zn.units() is is a generator
@@ -113,13 +146,15 @@ def Zmod(
         raise ValueError(f"n must be a positive integer, not {n}")
 
     class Z_Mod_(int):
-        def __new__(cls: Type[int], value=()):
+        def __new__(cls: Type[int], value: Optional[int] = None) -> Union[Polynomial[Z_Mod], Z_Mod]:
             # return super(cls, cls).__new__(cls, value % n)
-            if value == ():
+            if value is None:
                 return Polynomial(
                     [
-                        super(Z_Mod_, cls).__new__(cls, 0),
-                        super(Z_Mod_, cls).__new__(cls, 1),
+                        #super(Z_Mod_, cls).__new__(cls, 0),
+                        #super(Z_Mod_, cls).__new__(cls, 1),
+                        super().__new__(cls, 0),
+                        super().__new__(cls, 1),
                     ],
                     x=indet,
                     spaces=spaces,
@@ -128,7 +163,7 @@ def Zmod(
             # value = value % n
             # value = value - n if negatives and n//2 + 1 <= value < n else value
             # below is equivalent to above but doesn't take mod unless necessary;
-            # does not # appear to be faster
+            # does not appear to be faster
             if negatives:
                 half = -((n - 1) // 2)
                 if value < half or value > -half + (n + 1) % 2:
@@ -143,45 +178,49 @@ def Zmod(
         # def __new__(metacls, cls, bases, classdict, value):
         #    return super(metacls, metacls).__new__(metacls, value % n)
 
-        def __add__(self, other):
+        def __add__(self, other: Union[int, Z_Mod]) -> Z_Mod:
             return Z_Mod(super().__add__(other))
 
-        def __radd__(self, other):
+        def __radd__(self, other: Union[int, Z_Mod]) -> Z_Mod:
             return Z_Mod(super().__radd__(other))
 
-        def __neg__(self):
+        def __neg__(self) -> Z_Mod:
             return Z_Mod(super().__neg__())
 
-        def __sub__(self, other):
+        def __sub__(self, other: Union[int, Z_Mod]) -> Z_Mod:
             return Z_Mod(super().__sub__(other))
 
-        def __rsub__(self, other):
+        def __rsub__(self, other: Union[int, Z_Mod]) -> Z_Mod:
             return Z_Mod(super().__rsub__(other))
 
-        def __mul__(self, other):
+        def __mul__(self, other: Union[int, Z_Mod]) -> Z_Mod:
             return Z_Mod(super().__mul__(other))
 
-        def __rmul__(self, other):
+        def __rmul__(self, other: Union[int, Z_Mod]) -> Z_Mod:
             return Z_Mod(super().__rmul__(other))
 
-        def __pow__(self, m):
+        def __pow__(self, m: int) -> Optional[Z_Mod]: # type: ignore[override]
             if m >= 0:
                 return Z_Mod(pow(int(self), m, n))
             else:
                 g, inv, _ = xgcd(int(self), n)
-                assert abs(g) == 1, f"{int(self)} is not invertible modulo {n}"
-                return Z_Mod(pow(inv * g, -m, n))
+                #assert abs(g) == 1, f"{int(self)} is not invertible modulo {n}"
+                #return Z_Mod(pow(inv * g, -m, n))
+                return Z_Mod(pow(inv * g, -m, n)) if abs(g) == 1 else None
 
-        def __truediv__(self, other):
-            return self * other**-1
 
-        def __rtruediv__(self, other):
-            return Z_Mod(other) * self**-1
+        def __truediv__(self, other: Union[int, Z_Mod]) -> Optional[Z_Mod]: # type: ignore[override]
+            inv = Z_Mod(other) ** -1
+            return self * inv if inv else None
 
-        def __eq__(self, other):  # NOTE: do you need this?  YES
+        def __rtruediv__(self, other: Union[int, Z_Mod]) -> Optional[Z_Mod]: # type: ignore[override]
+            inv = self ** -1
+            return Z_Mod(other) * inv if inv else None
+
+        def __eq__(self, other: Union[int, Z_Mod]) -> bool:  # NOTE: do you need this?  YES
             return (int(self) - int(other)) % n == 0
 
-        def __ne__(self, other):  # NOTE: AND THIS.
+        def __ne__(self, other) -> bool:  # NOTE: AND THIS.
             return (int(self) - int(other)) % n != 0
 
         def __hash__(self):

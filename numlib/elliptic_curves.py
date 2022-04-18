@@ -40,7 +40,7 @@ class EllipticCurve(Generic[F]):
     disc: F
     f: FPolynomial[F]
 
-    def __init__(self) -> None:
+    def __init__(self, x: Union[int, F], y: Union[int, F], z: Union[int, F, None] = None) -> None:
         self.co: Tuple[F, F, F]
 
     def __add__(self, other: EllipticCurve[F]) -> EllipticCurve[F]:
