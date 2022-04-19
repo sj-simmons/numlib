@@ -1,5 +1,5 @@
 from copy import copy
-from typing import NewType, Type, Union, Any, TypeVar, Optional, overload
+from typing import NewType, Type, Union, Any, TypeVar, Optional, overload, cast
 from numlib import isprime, gcd, xgcd, iproduct, divisors, mulorder_
 from polylib.polynomial import Polynomial, FPolynomial, Ring, Field
 
@@ -41,16 +41,16 @@ class Z_Mod(int):
     #def __new__(cls, value: int) -> 'Z_Mod':
     #    pass
 
-    def __add__(self, other: Union[int, 'Z_Mod']) -> 'Z_Mod':
+    def __add__(self, other: Union[int, Z_Mod]) -> Z_Mod:
         pass
 
-    def __sub__(self, other: Union[int, 'Z_Mod']) -> 'Z_Mod':
+    def __sub__(self, other: Union[int, Z_Mod]) -> Z_Mod:
         pass
 
-    def __mul__(self, other: Union[int, 'Z_Mod']) -> 'Z_Mod':
+    def __mul__(self, other: Union[int, Z_Mod]) -> Z_Mod:
         pass
 
-    def __truediv__(self, other: Union[int, 'Z_Mod']) -> Optional['Z_Mod']:
+    def __truediv__(self, other: Union[int, Z_Mod]) -> Optional[Z_Mod]: # type: ignore[override]
         pass
 
 class Z_ModP(int):
@@ -59,16 +59,16 @@ class Z_ModP(int):
     #def __new__(cls, value: int) -> 'Z_ModP':
     #    pass
 
-    def __add__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+    def __add__(self, other: Union[int, Z_ModP]) -> Z_ModP:
         pass
 
-    def __sub__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+    def __sub__(self, other: Union[int, Z_ModP]) -> Z_ModP:
         pass
 
-    def __mul__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+    def __mul__(self, other: Union[int, Z_ModP]) -> Z_ModP:
         pass
 
-    def __truediv__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+    def __truediv__(self, other: Union[int, Z_ModP]) -> Z_ModP:
         pass
 
 def Zmod(
@@ -146,24 +146,24 @@ def Zmod(
         raise ValueError(f"n must be a positive integer, not {n}")
 
     class Z_Mod_(int):
-        def __new__(cls: Type[int], value: Optional[int] = None) -> Union[Polynomial[Z_Mod], Z_Mod]:
-            # return super(cls, cls).__new__(cls, value % n)
-            if value is None:
-                return Polynomial(
-                    [
-                        #super(Z_Mod_, cls).__new__(cls, 0),
-                        #super(Z_Mod_, cls).__new__(cls, 1),
-                        super().__new__(cls, 0),
-                        super().__new__(cls, 1),
-                    ],
-                    x=indet,
-                    spaces=spaces,
-                    increasing=increasing,
-                )
-            # value = value % n
-            # value = value - n if negatives and n//2 + 1 <= value < n else value
-            # below is equivalent to above but doesn't take mod unless necessary;
-            # does not appear to be faster
+        def __new__(cls, value: int) -> Z_Mod_:
+            # # return super(cls, cls).__new__(cls, value % n)
+            # if value is None:
+            #     return Polynomial(
+            #         [
+            #             #super(Z_Mod_, cls).__new__(cls, 0),
+            #             #super(Z_Mod_, cls).__new__(cls, 1),
+            #             super().__new__(cls, 0),
+            #             super().__new__(cls, 1),
+            #         ],
+            #         x=indet,
+            #         spaces=spaces,
+            #         increasing=increasing,
+            #     )
+            # # value = value % n
+            # # value = value - n if negatives and n//2 + 1 <= value < n else value
+            # # below is equivalent to above but doesn't take mod unless necessary;
+            # # does not appear to be faster
             if negatives:
                 half = -((n - 1) // 2)
                 if value < half or value > -half + (n + 1) % 2:
@@ -173,7 +173,8 @@ def Zmod(
             elif value < 0 or value >= n:
                 value = value % n
 
-            return super(Z_Mod_, cls).__new__(cls, value)
+            #return super(Z_Mod_, cls).__new__(cls, value)
+            return super().__new__(cls, value)
 
         # def __new__(metacls, cls, bases, classdict, value):
         #    return super(metacls, metacls).__new__(metacls, value % n)
@@ -211,7 +212,7 @@ def Zmod(
 
         def __truediv__(self, other: Union[int, Z_Mod]) -> Optional[Z_Mod]: # type: ignore[override]
             inv = Z_Mod(other) ** -1
-            return self * inv if inv else None
+            return self * inv if inv else None # type: ignore[override]
 
         def __rtruediv__(self, other: Union[int, Z_Mod]) -> Optional[Z_Mod]: # type: ignore[override]
             inv = self ** -1
