@@ -1,5 +1,5 @@
 from .utils import gcd, lcm, xgcd, sieve, leastdivisor, istrueprime, isprime, factor, factorPR, truephi, phi, truemu, mu, divisors, addorder_, addorder, mulorder_, mulorder, serialize, unserialize, iproduct, affine, affine2
-from .quotient_rings import Zmod, Zmodp, Pmod, FPmod, squareroot, GaloisField
+from .quotient_rings import Zmod, ZMod, Zmodp, Pmod, FPmod, squareroot, GaloisField
 from .elliptic_curves import EllipticCurve, EllCurve
 
 __author__ = 'Scott Simmons'
