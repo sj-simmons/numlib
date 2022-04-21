@@ -40,20 +40,20 @@ class EllipticCurve(Generic[F]):
     disc: F
     f: FPolynomial[F]
 
-    def __init__(self) -> None:
+    def __init__(self, x: Union[int, F], y: Union[int, F], z: Union[int, F, None] = None) -> None:
         self.co: Tuple[F, F, F]
 
     def __add__(self, other: EllipticCurve[F]) -> EllipticCurve[F]:
-        pass
+        ...
 
     def __neg__(self) -> EllipticCurve[F]:
-        pass
+        ...
 
     def __mul__(self, other: int) -> EllipticCurve[F]:
-        pass
+        ...
 
     def double(self) -> EllipticCurve[F]:
-        pass
+        ...
 
 
 class WeierstrassCurve(EllipticCurve[F]):
@@ -73,8 +73,8 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
 
     Examples:
 
-        >>> from numlib import Zmod
-        >>> GF = Zmod(7)
+        >>> from numlib import Zmodp
+        >>> GF = Zmodp(7)
         >>> E = EllCurve(GF(1), GF(1), debug = True)
         >>> E
         y^2 = x^3 + x + 1 over Z/7
