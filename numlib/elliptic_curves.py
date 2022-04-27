@@ -74,7 +74,7 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
     Examples:
 
         >>> from numlib import Zmodp
-        >>> GF = Zmodp(7)
+        >>> GF = Zmodp(7, negatives = True)
         >>> E = EllCurve(GF(1), GF(1), debug = True)
         >>> E
         y^2 = x^3 + x + 1 over Z/7
@@ -120,7 +120,7 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
         Alternatively,
 
         >>> from numlib import affine
-        >>> len({pt for pt in affine(E)}) # finite(E) is a generator
+        >>> len({pt for pt in affine(E)}) # affine(E) is a Python generator
         4
 
         This curve has order 5 and hence is cyclic. Every non-identity
@@ -134,42 +134,35 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
         (2, 2)
         [0: 1: 0]
     """
-    # global WeierstrassCurve  # not needed now?
-
     one = (a * b) ** 0
     zero = one * cast(F, 0)
 
-    aa = copy.copy(a)
-    if (
-        isinstance(a, Polynomial)
-        and a._degree
-        and a._degree > 0
-        and a.x.find("(") < 0
-        and a.x.find(")") < 0
-    ):
-        aa.x = "(" + a.x + ")"
-
-    bb = copy.copy(b)
-    if (
-        isinstance(b, Polynomial)
-        and b._degree
-        and b._degree > 0
-        and b.x.find("(") < 0
-        and b.x.find(")") < 0
-    ):
-        bb.x = "(" + b.x + ")"
-
+    # The below block is solely for nice string reps in case the coefficients
+    # of f are in F_q^n, n>1.
+    if isinstance(a, Polynomial) and a._degree > 0:
+        aa = copy.copy(a)
+        if a.x.find("(") < 0 and a.x.find(")") < 0:
+            aa.x = "(" + a.x + ")"
+    else:
+        aa = a
+    if isinstance(b, Polynomial) and b._degree > 0:
+        bb = copy.copy(b)
+        if b.x.find("(") < 0 and b.x.find(")") < 0:
+            bb.x = "(" + b.x + ")"
+    else:
+        bb = b
     f_ = Polynomial((bb, aa, zero, one), "x", spaces=True, increasing=False)
 
     class WeierstrassCurve_(type):
 
-        f = Polynomial((bb, aa, zero, one), "x", increasing=False)
+        #f = Polynomial((bb, aa, zero, one), "x", increasing=False)
+        f = f_
         disc = cast(F, -16) * (cast(F, 4) * a**3 + cast(F, 27) * b**2)
         j = cast(F, -110592) * a**3 / disc if disc != zero else None
 
         @classmethod
         def __repr__(self) -> str:
-            return f"y^2 = {f_} over {one.__class__}"
+            return f"y^2 = {f_} over {type(one)}"
 
         # @classmethod
         # def discriminant(self):

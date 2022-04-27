@@ -21,7 +21,7 @@ or, for the latest development version:
 pip install git+https://github.com/sj-simmons/numlib.git --user
 ```
 
-This library depends heavily on another pure Python library,
+This library depends heavily on another Python library,
 [polylib](https://github.com/sj-simmons/polylib),
 which can be installed with **pip install polylib --user**.
 
@@ -36,77 +36,74 @@ by issuing the command  **pip -V** at your commandline.
 ```pycon
 >>> import numlib as nl
 >>> GF = nl.GaloisField(7, 3)
->>> GF
+>>> print(GF)
 Z/7[t]/<-3+3t^2+t^3>
->>> GF.order()  # 7^3
+>>> GF.order  # 7^3
 343
 ```
-Define an element in GF:
-```pycon
->>> GF([1, 0, 2])
-1+2t^2 + <-3+3t^2+t^3>
->>> GF([1, 0, 2])**100
-2+t-3t^2 + <-3+3t^2+t^3>
-```
-Alternatively, you can use an indeterminant:
-```pycon
->>> t = GF.t()  # this is equivalent to t = GF([0, 1], 't')
+Element of GF are (equivalence classes of) polynomials.
+The easiest way to define a particular such element is
+to use an indeterminant.
+>>> t = GF()
 >>> 1 + 2*t**2
 1+2t^2 + <-3+3t^2+t^3>
 >>> t**100
 2+t-3t^2 + <-3+3t^2+t^3>
 ```
-The element **t**, created as above, is always a generator for GF's multiplicative
-group of units:
+The element **t**, created as above, is always a
+generator for GaloisField's multiplicative group of
+units:
 ```pycon
 >>> nl.mulorder(t)  # compute the multiplicative order
 342
 ```
-If you want something in GF's prime field when using an indeterminant:
+If you want something in GF's prime field when using
+an indeterminant:
 ```pycon
->>> 3*t**0  #  equivalently, GF([3])
+>>> 3*t**0
 3 + <-3+3t^2+t^3>
 ```
-Conveniently iterate through all elements:
+You can run through all non-zero elements of GF by
+taking powers of **t**; but this is faster:
 ```pycon
 >>> for element in GF:
 ...     print(element)
 ...
--3-3t-3t^2
--3-3t-2t^2
--3-3t-t^2
--3-3t
--3-3t+t^2
+-3t^2-3t-3
+-3t^2-3t-2
+-3t^2-2t-3
+-3t^2-2t-2
+-2t^2-3t-3
    ...
 ```
 
-#### Define an elliptic curve (using its Weierstrass form) over the Galois field GF
+#### Define an elliptic curve using its short Weierstrass form over the Galois field GF
 
 ```pycon
 >>> E = nl.EllCurve(2*t**2+t+5, 3*t**0)
 >>> E
-y^2 = (3) + (-2+t+2t^2)x + x^3 over Z/7[t]/<-3+3t^2+t^3>
+y^2 = x^3 + (2t^2+t-2)x + 3 over Z/7[t]/<t^3+3t^2-3>
 ```
-E is a now generator for the finite <img alt="$\operatorname{GF}(7^3)$" src="svgs/183c0fcbf5555289982cc209850085a7.svg" valign=-4.109589000000009px width="52.00929029999999pt" height="17.4904653pt"/>-rational points of the
-curve <img alt="$y^2 = x^3 + (-2+t+2t^2)x + 3.$" src="svgs/c759bf50d37f3ea44da19bab76b1f55d.svg" valign=-4.109589000000009px width="218.51187105000002pt" height="17.4904653pt"/>
+For small order curves, one can generate all
+finite <img alt="$\operatorname{GF}(7^3)$" src="svgs/183c0fcbf5555289982cc209850085a7.svg" valign=-4.109589000000009px width="52.00929029999999pt" height="17.4904653pt"/>-rational points:
 ```pycon
->>> for point in E:
+>>> for point in nl.finite(E):
 ...    print(point)
 ...
-(-3-3t, -2t+3t^2)
-(-3-3t, 2t-3t^2)
-(-3-3t+t^2, -1+2t-t^2)
-(-3-3t+t^2, 1-2t+t^2)
-(-3-3t+2t^2, -3-3t+3t^2)
-          ...
+(t^2+2t+3, -3t^2-3t-2)
+(t^2+2t+3, 3t^2+3t+2)
+(2t^2-2, -3t^2-2t-2)
+(2t^2-2, 3t^2+2t+2)
+(3t^2+t-1, -2t^2-3t-3)
+        ...
 ```
 Counting the point at infinity, the total number of <img alt="$\operatorname{GF}(7^3)$" src="svgs/183c0fcbf5555289982cc209850085a7.svg" valign=-4.109589000000009px width="52.00929029999999pt" height="17.4904653pt"/>-rational
 points on this curve is 378:
 ```pycon
->>> len(E)
+>>> len(list(nl.finite(E)))
 377
 ```
-Warning: the last command can take essentially forever for large curves, which is
+Warning: the last commands can take essentially forever for large curves, which is
 comparable to saying that one gets more encryption bang for one's buck by replacing
 &mdash; when implementing crypto-systems  &mdash; a finite field with an elliptic
 curve over a finite field.
@@ -115,8 +112,8 @@ curve over a finite field.
 
 First, numlib provides various number theoretic utilities that may prove useful.
 ```pycon
->>> from numlib import gcd_, xgcd
->>> gcd_(143, 2662)  # 11 since 143 = 11*13 and 2662 = 2*11^3
+>>> from numlib import gcd, xgcd
+>>> gcd(143, 2662)  # 11 since 143 = 11*13 and 2662 = 2*11^3
 >>> xgcd(143, 2662)  # (11, -93, 5) since 11 = -93 * 143 + 5 * 2662
 >>> -93 * 143 + 5 * 2662  # 11
 ```
@@ -134,10 +131,10 @@ To work, in the interpreter, with the integers, <img alt="$\mathbb{Z}$" src="svg
 >>> R = Zmod(15)  # R is a class that returns instances of integers modulo 15
 >>> R(37)  # 7 mod 15
 >>> print(R(37))  # 7
->>>
 >>> x = R(9); y = R(30)
 >>> z = 301*x + y**2 + x*y + 1000  # We can do arithmetic and integers such as 301
 >>> z  # 4 mod 15                    and 1000 are coerced to integers mod 15
+>>> z.isunit()  # True
 ```
 R in the previous code block is now a class but think of it as a
 type: the ring, <img alt="$\mathbb{Z}/15$" src="svgs/a3477f7ac2c6287b1119be1b65751b9f.svg" valign=-4.109589000000009px width="35.61656834999999pt" height="16.438356pt"/>, of integers modulo 15.
@@ -146,10 +143,8 @@ type: the ring, <img alt="$\mathbb{Z}/15$" src="svgs/a3477f7ac2c6287b1119be1b657
 ```
 Some simple class-level methods are available:
 ```pycon
->>> R.isField()  # False since 15 is not prime (3 and 5 are zero divisors)
->>>
->>> list(R.units())  # R.units() is a Python generator
-[1, 2, 4, 7, 8, 11, 13, 14]  # the multiplicative group of units in Z/15
+>>> print(', '.join(str(x) for x in R.units())) # R.units() is a Python generator
+1, 2, 4, 7, 8, 11, 13, 14  # the multiplicative group of units in Z/15
 >>>
 >>> phi = len(list(R.units()))  # the order of the group of units
 >>> phi  # phi(15) = 8 where phi is Euler's totient function
