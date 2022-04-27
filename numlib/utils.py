@@ -44,8 +44,8 @@ __license__ = "Apache 2.0"
 R = TypeVar("R", bound=Ring)
 F = TypeVar("F", bound=Field)
 
-Euclidean = TypeVar("Euclidean", int, FPolynomial[F])  # Both are Euclidean rings
-# Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]') # Both Euclidean rings
+#Euclidean = TypeVar("Euclidean", int, FPolynomial[F])  # Both are Euclidean rings
+Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]') # Both Euclidean rings
 
 
 def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
@@ -745,7 +745,7 @@ def iproduct(*iterables, repeat: int = 1):
     yield ()  # There are no iterables.
 
 
-def affine(E: nl.EllipticCurve[F]) -> Generator[Tuple[int, int], None, None]:
+def affine(E: nl.EllipticCurve[Field]) -> Generator[Tuple[int, int], None, None]:
     """Return a generator that yields the affine points of E.
 
     This works fine for small curves. But it pre computes two
@@ -776,7 +776,7 @@ def affine(E: nl.EllipticCurve[F]) -> Generator[Tuple[int, int], None, None]:
         >>> len(list(affine(E)))
         34
     """
-    coefcls = E.disc.__class__
+    coefcls = E.f[-1].__class__
     # b = E.f(0)
     # a = E.f.derivative()(0)
     b = E.f[0]
@@ -877,7 +877,8 @@ def affine2(E: nl.EllipticCurve[F]) -> Generator[Tuple[int, int], None, None]:
     #        >>> len({pt for pt in affine2(E)})  # TODO: implement this
     #        0
     """
-    coefcls = E.disc.__class__
+    #coefcls = E.disc.__class__
+    coefcls = E.f[-1].__class__
     p = coefcls.char
     q = p if not hasattr(coefcls, "order") else coefcls.order
     if q % 2 == 0:
