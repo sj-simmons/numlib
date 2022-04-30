@@ -44,8 +44,8 @@ __license__ = "Apache 2.0"
 R = TypeVar("R", bound=Ring)
 F = TypeVar("F", bound=Field)
 
-#Euclidean = TypeVar("Euclidean", int, FPolynomial[F])  # Both are Euclidean rings
-Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]') # Both Euclidean rings
+Euclidean = TypeVar("Euclidean", int, FPolynomial[F])  # Both are Euclidean rings
+#Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]') # Both Euclidean rings
 
 
 def gcd(a: Euclidean, b: Euclidean) -> Euclidean:

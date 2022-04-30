@@ -74,7 +74,7 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
     Examples:
 
         >>> from numlib import Zmodp
-        >>> GF = Zmodp(7)
+        >>> GF = Zmodp(7, negatives = True)
         >>> E = EllCurve(GF(1), GF(1), debug = True)
         >>> E
         y^2 = x^3 + x + 1 over Z/7
