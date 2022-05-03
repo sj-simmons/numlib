@@ -1,5 +1,5 @@
 from copy import copy
-from typing import Type, Union, TypeVar, Optional, Sequence, cast, Callable, Iterator, Any
+from typing import Type, Union, TypeVar, Optional, Sequence, cast, Callable, Iterator, Any, Generic
 from numlib import isprime, gcd, xgcd, iproduct, divisors, mulorder_
 from polylib.polynomial import Polynomial, FPolynomial, Ring, Field
 
@@ -28,7 +28,7 @@ __license__ = "Apache 2.0"
 
 class ZMod(int):
     def __add__(self, other: Union[int, 'ZMod']) -> 'ZMod': ...
-    def __radd__(self, other: Union[int, 'ZMod']) -> 'ZMod': ...
+    def __radd__(self, other: int) -> 'ZMod': ...
     def __sub__(self, other: Union[int, 'ZMod']) -> 'ZMod': ...
     def __rsub__(self, other: Union[int, 'ZMod']) -> 'ZMod': ...
     def __neg__(self) -> 'ZMod': ...
@@ -47,17 +47,16 @@ class ZModIterable(type):
     @classmethod
     def __repr__(cls, self) -> str: ...
     @classmethod
-    def indet(cls, indet: str = 'x', spaces: bool = False, increasing: bool = False) -> Polynomial['ZMod']: ...
+    def indet(cls, **kwargs) -> Polynomial['ZMod']: ...
 
 class ZMod_(ZMod, metaclass=ZModIterable):
     char: int
+    order: int
     def isunit(self) -> bool: ...
 
 class ZModP(int):
-    char: int
-    indet: Callable[[str, bool, bool],Polynomial['ZModP']]
     def __add__(self, other: Union[int, 'ZModP']) -> 'ZModP': ...
-    def __radd__(self, other: Union[int, 'ZModP']) -> 'ZModP': ...
+    def __radd__(self, other: int) -> 'ZModP': ...
     def __sub__(self, other: Union[int, 'ZModP']) -> 'ZModP': ...
     def __rsub__(self, other: Union[int, 'ZModP']) -> 'ZModP': ...
     def __neg__(self) -> 'ZModP': ...
@@ -68,8 +67,8 @@ class ZModP(int):
     def __rtruediv__(self, other: int) -> 'ZModP': ... # type: ignore[misc]
 
 class ZModPIterable(type):
-    def __iter__(self, units_: bool = False) -> Iterator['Z_ModP']: ...
-    def units(self) -> Iterator['Z_ModP']: ...
+    def __iter__(self, units_: bool = False) -> Iterator['ZModP']: ...
+    def units(self) -> Iterator['ZModP']: ...
     @classmethod
     def __len__(cls, self) -> int: ...
     @classmethod
@@ -77,47 +76,76 @@ class ZModPIterable(type):
     @classmethod
     def __repr__(cls, self) -> str: ...
     @classmethod
-    def indet(cls, indet: str = 'x', spaces: bool = False, increasing: bool = False) -> FPolynomial['ZModP']: ...
+    def indet(cls, **kwargs) -> FPolynomial['ZModP']: ...
 
 class ZModP_(ZModP, metaclass=ZModPIterable):
     char: int
+    order: int
     def isunit(self) -> bool: ...
 
 R = TypeVar('R', bound = Ring[Any])
 F = TypeVar('F', bound = Field[Any])
 
-class PMod(Polynomial[R]):
-    char: int
-    order: int  # NOTE: This likely needs to be implemented below? Need this for ZMod and ZModP??
-    #indet: Callable[[str, bool, bool],Polynomial['PMod[R]']] # NOTE: implement this
+class PModMeta(type):
+    @classmethod
+    def __str__(cls) -> str: ...
+    @classmethod
+    def __repr__(cls) -> str: ...
 
-    #def __add__(self, other: Union[int, 'PMod']) -> 'PMod': ...
-    #def __radd__(self, other: Union[int, 'PMod']) -> 'PMod': ...
-    #def __sub__(self, other: Union[int, 'PMod']) -> 'PMod': ...
-    #def __rsub__(self, other: Union[int, 'PMod']) -> 'PMod': ...
-    #def __neg__(self) -> 'ZMod': ...
-    #def __mul__(self, other: Union[int, 'PMod']) -> 'PMod': ...
-    #def __rmul__(self, other: Union[int, 'PMod']) -> 'PMod': ...
-    #def __pow__(self, m: int) -> Optional['PMod']: ... # type: ignore[override]
-    #def __truediv__(self, other: Union[int, 'ZMod']) -> Optional['ZMod']: ... # type: ignore[override]
+class PMod(Generic[R]):
+    def __init__(self, *args, **kwargs): ...
+    def __add__(self, other: Union[int, 'PMod[R]']) -> 'PMod[R]': ...
+    def __radd__(self, other: int) -> 'PMod[R]': ...
+    def __sub__(self, other: Union[int, 'PMod[R]']) -> 'PMod[R]': ...
+    def __rsub__(self, other: Union[int, 'PMod[R]']) -> 'PMod[R]': ...
+    def __neg__(self) -> 'PMod[R]': ...
+    def __mul__(self, other: Union[int, 'PMod[R]']) -> 'PMod[R]': ...
+    def __rmul__(self, other: Union[int, 'PMod[R]']) -> 'PMod[R]': ...
+    def __pow__(self, m: int) -> Optional['PMod[R]']: ... # type: ignore[override]
 
-class FPMod(FPolynomial[F]):
+class FPModMeta(type):
+    @classmethod
+    def __str__(cls) -> str: ...
+    @classmethod
+    def __repr__(cls) -> str: ...
+
+class FPMod(Generic[F]):
+    #indet: # NOTE: implement this here and in Pmod and GF_PFMod??
+    # NOTE:  This (and Pmod) should probably induce F (and R)
+    def __init__(self, *args, **kwargs): ...
+    def __add__(self, other: Union[int, 'FPMod[F]']) -> 'FPMod[F]': ...
+    def __radd__(self, other: int) -> 'FPMod[F]': ...
+    def __sub__(self, other: Union[int, 'FPMod[F]']) -> 'FPMod[F]': ...
+    def __rsub__(self, other: Union[int, 'FPMod[F]']) -> 'FPMod[F]': ...
+    def __neg__(self) -> 'FPMod[F]': ...
+    def __mul__(self, other: Union[int, 'FPMod[F]']) -> 'FPMod[F]': ...
+    def __rmul__(self, other: Union[int, 'FPMod[F]']) -> 'FPMod[F]': ...
+    def __pow__(self, m: int) -> 'FPMod[F]': ... # type: ignore[override]
+    def __truediv__(self, other: Union[int, 'FPMod[F]']) -> 'FPMod[F]': ...
+    def __rtruediv__(self, other: int) -> 'FPMod[F]': ... # type: ignore[misc]
+
+class GF_FPModMeta(type):
+    def __iter__(self) -> Iterator[FPMod[ZModP]]: ...
+    @classmethod
+    def __str__(cls) -> str: ...
+    @classmethod
+    def __repr__(cls) -> str: ...
+
+class GF_FPMod():
+    def __init__(self, *args, **kwargs): ...
+    def __add__(self, other: Union[int, 'GF_FPMod']) -> 'GF_FPMod': ...
+    def __radd__(self, other: int) -> 'GF_FPMod': ...
+    def __sub__(self, other: Union[int, 'GF_FPMod']) -> 'GF_FPMod': ...
+    def __rsub__(self, other: Union[int, 'GF_FPMod']) -> 'GF_FPMod': ...
+    def __neg__(self) -> 'GF_FPMod': ...
+    def __mul__(self, other: Union[int, 'GF_FPMod']) -> 'GF_FPMod': ...
+    def __rmul__(self, other: Union[int, 'GF_FPMod']) -> 'GF_FPMod': ...
+    def __pow__(self, m: int) -> 'GF_FPMod': ... # type: ignore[override]
+    def __truediv__(self, other: Union[int, 'GF_FPMod']) -> 'GF_FPMod': ...
+    def __rtruediv__(self, other: int) -> 'GF_FPMod': ... # type: ignore[misc]
     char: int
     order: int
-    #indet: Callable[[str, bool, bool],Polynomial['FPMod[F]']] # NOTE: implement this
-    #def __add__(self, other: Union[int, 'FPMod']) -> 'FPMod': ...
-    #def __radd__(self, other: Union[int, 'FPMod']) -> 'FPMod': ...
-    #def __sub__(self, other: Union[int, 'FPMod']) -> 'FPMod': ...
-    #def __rsub__(self, other: Union[int, 'FPMod']) -> 'FPMod': ...
-    #def __neg__(self) -> 'ZModP': ...
-    #def __mul__(self, other: Union[int, 'FPMod']) -> 'FPMod': ...
-    #def __rmul__(self, other: Union[int, 'FPMod']) -> 'FPMod': ...
-    #def __pow__(self, m: int) -> 'FPMod': ... # type: ignore[override]
-    #def __truediv__(self, other: Union[int, 'FPMod']) -> 'FPMod': ...
-    #def __rtruediv__(self, other: int) -> 'FPMod': ... # type: ignore[misc]
-
-#class GF_FPmod_:
-#    pass
+    def indet(*args, **kwargs) -> FPolynomial['GF_FPMod']: ...
 
 def Zmod(n: int, mp: bool = False, negatives: bool = True,) -> Type[ZMod_]:
     """Quotient the integers by the principal ideal generated by n.
@@ -212,6 +240,7 @@ def Zmod(n: int, mp: bool = False, negatives: bool = True,) -> Type[ZMod_]:
 
             #return super(Z_Mod_, cls).__new__(cls, value)
             return cast(Z_Mod, ZMod.__new__(cls, value))
+            #return ZMod.__new__(cls, value)
 
         # def __new__(metacls, cls, bases, classdict, value):
         #    return super(metacls, metacls).__new__(metacls, value % n)
@@ -219,7 +248,7 @@ def Zmod(n: int, mp: bool = False, negatives: bool = True,) -> Type[ZMod_]:
         def __add__(self, other: Union[int, 'Z_Mod']) -> 'Z_Mod':
             return Z_Mod(super(ZMod, self).__add__(other))
 
-        def __radd__(self, other: Union[int, 'Z_Mod']) -> 'Z_Mod':
+        def __radd__(self, other: int) -> 'Z_Mod':
             return Z_Mod(super(ZMod, self).__radd__(other))
 
         def __neg__(self) -> 'Z_Mod':
@@ -310,6 +339,7 @@ def Zmod(n: int, mp: bool = False, negatives: bool = True,) -> Type[ZMod_]:
     class Z_Mod_(ZMod_, Z_Mod, metaclass=Z_ModIterable):
 
         char = n
+        order = n
 
         def isunit(self) -> bool:
             return self != 0 and abs(gcd(self, n)) == 1
@@ -394,7 +424,7 @@ def Zmodp(p: int, mp: bool =False, negatives: bool =True) -> Type[ZModP_]:
         def __add__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
             return Z_ModP(super(ZModP, self).__add__(other))
 
-        def __radd__(self, other: Union[int, 'Z_ModP']) -> 'Z_ModP':
+        def __radd__(self, other: int) -> 'Z_ModP':
             return Z_ModP(super(ZModP, self).__radd__(other))
 
         def __neg__(self) -> 'Z_ModP':
@@ -481,6 +511,7 @@ def Zmodp(p: int, mp: bool =False, negatives: bool =True) -> Type[ZModP_]:
     class Z_Mod_(ZModP_, Z_ModP, metaclass=Z_ModIterable):
 
         char = p
+        order = p
 
         def isunit(self) -> bool:
             return self != 0
@@ -489,6 +520,7 @@ def Zmodp(p: int, mp: bool =False, negatives: bool =True) -> Type[ZModP_]:
 
     return Z_Mod_
 
+R1 = TypeVar('R1', bound=Ring)
 
 def Pmod(monic: Polynomial[R]) -> Type[PMod[R]]:
     """Quotient a univariate polynomial ring by a principal ideal.
@@ -533,7 +565,7 @@ def Pmod(monic: Polynomial[R]) -> Type[PMod[R]]:
     minc = monic.increasing
     one = monic[-1]**0
 
-    class Pmod__(type):
+    class PmodMeta_(PModMeta, type):
         @classmethod
         def __str__(cls) -> str:
             return f"{(one).__class__.__name__}[{mx}]/<{monic}>"
@@ -542,9 +574,8 @@ def Pmod(monic: Polynomial[R]) -> Type[PMod[R]]:
         def __repr__(cls) -> str:
             return f"{(one).__class__.__name__}[{mx}]/<{monic}>"
 
-    R1 = TypeVar('R1', bound=Ring)
-    #class Pmod_(Polynomial, metaclass=Pmod__):
-    class Pmod_(PMod[R1], metaclass=Pmod__):
+    #class Pmod_(Polynomial, metaclass=PmodMeta_):
+    class Pmod_(Polynomial[R1], PMod[R1], metaclass=PmodMeta_):
         def __init__(self, coeffs: Sequence[R1], x: Optional[str] = None, spaces: bool =True, increasing: bool = False):
 
             if not (
@@ -566,15 +597,14 @@ def Pmod(monic: Polynomial[R]) -> Type[PMod[R]]:
             if mdeg < 0:
                 raise ValueError("no need to quotient by <0>")
 
+            #poly = Polynomial[R1](
             poly = Polynomial(
                 [one * elt for elt in coeffs], x=mx, spaces=msp, increasing=minc
             )
             polydeg = poly._degree
             if polydeg and polydeg >= mdeg:
                 poly %= monic
-            super().__init__(
-                poly._coeffs, x=x if x else mx, spaces=msp, increasing=minc
-            )
+            super().__init__(poly._coeffs, x=x if x else mx, spaces=msp, increasing=minc)
 
         def __eq__(self, other: Union[int, 'Pmod_']) -> bool: # type: ignore[override]
             return ((self - other).__mod__(monic))._degree < 0
@@ -598,6 +628,7 @@ def Pmod(monic: Polynomial[R]) -> Type[PMod[R]]:
 
     return Pmod_
 
+F1 = TypeVar('F1', bound=Field)
 
 def FPmod(fpoly: FPolynomial[F]) -> Type[FPMod[F]]:
     """Quotient a univariate polynomial ring over a field by a principal ideal.
@@ -815,7 +846,7 @@ def FPmod(fpoly: FPolynomial[F]) -> Type[FPMod[F]]:
     finc = fpoly.increasing
     one = fpoly[-1]**0
 
-    class FPmod__(type):
+    class FPmodMeta_(FPModMeta):
 
         # def __iter__(self):
         #    for coeffs in iproduct(fpoly[0].__class__, repeat=fpoly.degree()):
@@ -840,8 +871,9 @@ def FPmod(fpoly: FPolynomial[F]) -> Type[FPMod[F]]:
         # def char(self):
         #    return fpoly[-1].char()
 
-    class FPmod_(FPMod[F], metaclass=FPmod__):
-        def __init__(self, coeffs: Sequence[F], x: Optional[str] = None, spaces: bool = True, increasing: bool = False) -> None:
+    #class FPmod_(FPMod[F1], metaclass=FPmodMeta_):
+    class FPmod_(FPolynomial[F1], FPMod[F1], metaclass=FPmodMeta_):
+        def __init__(self, coeffs: Sequence[F1], x: Optional[str] = None, spaces: bool = True, increasing: bool = False) -> None:
 
             if not (
                 isinstance(coeffs, Polynomial) or hasattr(type(coeffs), "__iter__")
@@ -863,13 +895,34 @@ def FPmod(fpoly: FPolynomial[F]) -> Type[FPMod[F]]:
                 raise ValueError("no need to quotient by <0>")
 
             # poly = FPolynomial([type(one)(elt) for elt in coeffs], x = fx, spaces = fsp, increasing = finc)
-            poly = FPolynomial(coeffs, x=fx, spaces=fsp, increasing=finc)
+            poly = FPolynomial[F1](coeffs, x=fx, spaces=fsp, increasing=finc)
             polydeg = poly._degree
             if polydeg and polydeg >= fdeg:
                 poly %= fpoly
-            super().__init__(
-                poly._coeffs, x=x if x else fx, spaces=fsp, increasing=finc
-            )
+            super().__init__(poly._coeffs, x=x if x else fx, spaces=fsp, increasing=finc)
+
+        def __truediv__(self, other: Union[int, 'FPmod_']) -> 'FPmod_':
+            if isinstance(other, int):
+                return cast(FPmod_, self * (other * (self**0)[0]) ** -1)
+            elif isinstance(other, FPolynomial):
+                g, inv, _ = xgcd(other, fpoly)
+                if not g._degree == 0:
+                    raise ValueError(f"{other} is not invertible modulo {fpoly}")
+                return cast(FPmod_, self * inv * g[0] ** -1)
+            #else:
+            #    return NotImplemented
+
+        def __rtruediv__(self, other: Union[int, 'FPmod_']) -> 'FPmod_':
+            return cast(FPmod_, self.__class__([other], self.x, self.spaces, self.increasing) / self)
+
+        def __pow__(self, m: int) -> 'FPmod_':
+            if m < 0:
+                assert self != 0, "cannot invert 0"
+                # return super(FPmod_, 1/self).__pow__(-m)
+                return (1 / self).__pow__(-m)
+            else:
+                return cast(FPmod_, super().__pow__(m))
+                #return cast(FPmod_, super(FPmod_, self).__pow__(m))
 
         def __eq__(self, other: 'FPmod_') -> bool: # type: ignore[override]
             #NOTE: Induce from int here an Pmod GaloisField??
@@ -891,32 +944,10 @@ def FPmod(fpoly: FPolynomial[F]) -> Type[FPMod[F]]:
                 s = s[1:-1]
             return f"<{fpoly_}>" if self._degree < 0 else f"{self} + <{s}>"
 
-        def __truediv__(self, other: Union[int, 'FPmod_']) -> 'FPmod_':
-            if isinstance(other, int):
-                return cast(FPmod_, self * (other * (self**0)[0]) ** -1)
-            elif isinstance(other, FPolynomial):
-                g, inv, _ = xgcd(other, fpoly)
-                if not g._degree == 0:
-                    raise ValueError(f"{other} is not invertible modulo {fpoly}")
-                return cast(FPmod_, self * inv * g[0] ** -1)
-            #else:
-            #    return NotImplemented
-
-        def __rtruediv__(self, other: Union[int, 'FPmod_']) -> 'FPmod_':
-            return self.__class__([other], self.x, self.spaces, self.increasing) / self
-
-        def __pow__(self, m: int) -> 'FPmod_':
-            if m < 0:
-                assert self != 0, "cannot invert 0"
-                # return super(FPmod_, 1/self).__pow__(-m)
-                return (1 / self).__pow__(-m)
-            else:
-                return cast(FPmod_, super().__pow__(m))
-                #return cast(FPmod_, super(FPmod_, self).__pow__(m))
 
     return FPmod_
 
-def GaloisField(p: int, r: int = 1, negatives=True, indet: str="t") -> Type[FPMod[ZModP]]:
+def GaloisField(p: int, r: int = 1, negatives=True, indet: str="t") -> Type[GF_FPMod]:
     """Return an implemention of a Galois field of order p^r.
 
     Rather than calling this with r = 1 to implement GF(p), you may want
@@ -1182,7 +1213,7 @@ def GaloisField(p: int, r: int = 1, negatives=True, indet: str="t") -> Type[FPMo
     else:
         return NotImplemented #type:ignore
 
-    class FPmod__(type):
+    class FPmodMeta_(GF_FPModMeta):
         def __iter__(self) -> Iterator[FPMod[ZModP]] :
             for coeffs in iproduct(PF, repeat=r):
                 yield (self(coeffs))
@@ -1196,7 +1227,7 @@ def GaloisField(p: int, r: int = 1, negatives=True, indet: str="t") -> Type[FPMo
             # return f"{(irrbase).__class__.__name__}[{irrx}]/<{irred}>"
             return f"{PF}[{indet}] mod {repr(irred)}"
 
-    class GF_FPmod_(FPMod[ZModP], metaclass=FPmod__):
+    class GF_FPmod_(FPolynomial[ZModP], GF_FPMod, metaclass=FPmodMeta_):
         def __init__(self, coeffs: Sequence[ZModP] = (), x: str = indet, spaces: bool = False, increasing: bool = False) -> None: 
             # if not (isinstance(coeffs, Polynomial) or hasattr(type(coeffs), '__iter__')):
             #    raise ValueError(
@@ -1260,15 +1291,17 @@ def GaloisField(p: int, r: int = 1, negatives=True, indet: str="t") -> Type[FPMo
             else:
                 return super(GF_FPmod_, self).__pow__(m)
 
+    # Might want to move below to a subclass like FPmod
+
     GF = GF_FPmod_
     GF.__name__ = str(GF)
 
-    def indeterminant(indet: str = 'x', spaces: bool = True, increasing: bool = True) -> FPolynomial:
-        return FPolynomial([t*0, t**0], x=indet, spaces=spaces, increasing=increasing)
+    def indeterminant(letter: str = 'x', spaces: bool = True, increasing: bool = True) -> FPolynomial[GF_FPMod]:
+        return FPolynomial([t*0, t**0], x=letter, spaces=spaces, increasing=increasing)
 
     GF.indet = indeterminant
-    GF.order = p**r
     GF.char = p
+    GF.order = p**r
 
     return GF
 
