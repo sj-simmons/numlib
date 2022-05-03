@@ -34,37 +34,26 @@ class AlgebraicCurve:
 
 F = TypeVar("F", bound=Field)
 
-
 class EllipticCurve(Generic[F]):
     j: F
     disc: F
     f: FPolynomial[F]
-
     def __init__(self, x: Union[int, F], y: Union[int, F], z: Union[int, F, None] = None) -> None:
         self.co: Tuple[F, F, F]
-
-    def __add__(self, other: EllipticCurve[F]) -> EllipticCurve[F]:
-        ...
-
-    def __neg__(self) -> EllipticCurve[F]:
-        ...
-
-    def __mul__(self, other: int) -> EllipticCurve[F]:
-        ...
-
-    def double(self) -> EllipticCurve[F]:
-        ...
-
+    def __add__(self, other: EllipticCurve[F]) -> EllipticCurve[F]: ...
+    def __neg__(self) -> EllipticCurve[F]: ...
+    def __mul__(self, other: int) -> EllipticCurve[F]: ...
+    def double(self) -> EllipticCurve[F]: ...
 
 class WeierstrassCurve(EllipticCurve[F]):
     pass
-
 
 class MontgomeryCurve(EllipticCurve[F]):
     pass
 
 
-def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
+#def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
+def Weierstrass(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
     """Return a class whose instances are elements of y^2=x^3+ax+b.
 
     This implements an elliptic curve in short Weierstrass form. The re-
@@ -162,7 +151,7 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
 
         @classmethod
         def __repr__(self) -> str:
-            return f"y^2 = {f_} over {type(one)}"
+            return f"y^2 = {f_} over {type(one).__name__}"
 
         # @classmethod
         # def discriminant(self):
@@ -181,7 +170,7 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
         #        return s
 
     class WeierstrassCurve(EllipticCurve[F], metaclass=WeierstrassCurve_):
-        def __init__(self, x: F = zero, y: F = zero, z: F = one) -> None:
+        def __init__(self, x: F = zero, y: F = one, z: F = zero) -> None:
             """projective coordinates [x: y: z]"""
 
             # x = one * x; y = one * y; z = one * z
@@ -298,6 +287,125 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> Type[EllipticCurve[F]]:
                 return hash((self.co[0] / self.co[2], self.co[1] / self.co[2]))
 
     return WeierstrassCurve
+
+def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
+    """Return a class whose instances are elements of by^2=x^3+ax^2+x.
+
+    This implements an elliptic curve in Montgomery form. The returned
+    class allows one to work in the curves k-rational points where the
+    field k is that of the arguments to the paramters a and b.
+
+    Examples:
+
+        Curve25519 (over Z/(2**255-19)):
+
+        >>> from numlib import Zmodp
+        >>> p = 2**255-19
+        >>> GF = Zmodp(p, negatives = True)
+        >>> E = Montgomery(GF(486662), GF(1), debug = True)
+        >>> E
+        y^2 = x^3 + 486662x^2 + x over Z/57896044618658097711785492504343953926634992332820282019728792003956564819949
+        >>> E.j != 0
+        True
+
+        Standard basepoint:
+
+        >>> from numlib import sqrt
+        >>> x = GF(9)
+        >>> y = sqrt(E.f(x), p, p)
+        >>> y = y if int(y) > 0 else -y
+        >>> g = E(x,y)
+        >>> print(g)
+        (9, 14781619447589544791020593568409986887264606134616475288964881837755586237401)
+
+        The basepoint g generates a subgroup whose order is:
+
+        >>> n = 2**252 + 27742317777372353535851937790883648493
+        >>> from numlib import isprime
+        >>> isprime(n)
+        True
+
+        Let us check that g has the correct order:
+
+        >>> #print(n*g)
+        [0: 1: 0]
+
+        >>> from numlib import addorder
+        >>> #mulorder(g, n) == n
+        True
+    """
+    one = (a * b) ** 0
+    zero = one * cast(F, 0)
+
+    if isinstance(a, Polynomial) and a._degree > 0:
+        aa = copy.copy(a)
+        if a.x.find("(") < 0 and a.x.find(")") < 0:
+            aa.x = "(" + a.x + ")"
+    else:
+        aa = a
+    if isinstance(b, Polynomial) and b._degree > 0:
+        bb = copy.copy(b)
+        if b.x.find("(") < 0 and b.x.find(")") < 0:
+            bb.x = "(" + b.x + ")"
+    else:
+        bb = b
+
+    f_ = Polynomial((zero, one, aa, one), "x", spaces=True, increasing=False)
+    ypoly = Polynomial((zero, zero, bb), "y", spaces=False, increasing=False)
+
+    class MontgomeryCurve_(type):
+
+        f = f_
+        disc = a**2 - cast(F, 4)
+        j = cast(F, 256) * (a**2 - cast(F, 3))**3 / disc if disc != zero else None
+
+        @classmethod
+        def __repr__(self) -> str:
+            return f"{ypoly} = {f_} over {type(one).__name__}"
+
+    class MontgomeryCurve(EllipticCurve[F], metaclass=MontgomeryCurve_):
+        def __init__(self, x: F = zero, y: F = zero, z: F = one) -> None:
+            """projective coordinates [x: y: z]"""
+
+            if debug:
+                if z != zero:
+                    if (y / z) ** 2 != bb * f_(x / z):
+                        raise ValueError(
+                            (
+                                f"({x/z}, {y/z}) = [{x}: {y}: {z}] is not on {ypoly} = {f_}: "
+                                f"{ypoly} = {(y/z)**2} != {f_(x/z)}"
+                            )
+                        )
+                else:
+                    if not (x == 0 and y != 0):
+                        raise ValueError(f"[{x}: {y}: {z}] is not on {ypoly} = {f_}")
+
+            self.co = (x, y, z)
+
+        def __mul__(self, n: int) -> EllipticCurve[F]:
+            """multiply using Montgomery ladder"""
+            pass
+
+        def __str__(self: EllipticCurve[F]) -> str:
+            if self.co[2] == 0:
+                return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}]"
+            else:
+                return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]})"
+
+        def __repr__(self: EllipticCurve[F]) -> str:
+            if self.co[2] == 0:
+                return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}] on {self.__class__}"
+            else:
+                return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]}) on {self.__class__}"
+
+        def __hash__(self: EllipticCurve[F]) -> int:
+            # need to hash unique coords so do something like this:
+            if self.co[2] == 0:
+                return hash((zero, one, zero))
+            else:
+                return hash((self.co[0] / self.co[2], self.co[1] / self.co[2]))
+
+    return MontgomeryCurve
 
 
 EllCurve = Weierstrass
