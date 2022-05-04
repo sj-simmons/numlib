@@ -390,7 +390,19 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
             self.co = (x, y, z)
 
         def __mul__(self, k: int) -> EllipticCurve[F1]:
-            pass
+            """multiply using Montgomery ladder"""
+            def ladder(tup, k):
+                if k == 1:
+                    return (self.co[0], self.co[2])
+                elif n % 2 == 1:
+                    XX, ZZ = ladderstep(tup, n // 2)
+                    return (                        ,                       )
+                else:
+                    XX, ZZ = ladderstep(tup, n // 2)
+                    return (                        ,                       )
+
+            tup = ladder((self.co[0], self.co[2]), k)
+            return self.__class__(tup[0], None, tup[2])
 
         def __str__(self: EllipticCurve[F1]) -> str:
             if self.co[2] == 0:
