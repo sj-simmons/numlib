@@ -276,9 +276,9 @@ def Weierstrass(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
 
         def __repr__(self: EllipticCurve[F1]) -> str:
             if self.co[2] == 0:
-                return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}] on {self.__class__}"
+                return f"{self} on {self.__class__}"
             else:
-                return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]}) on {self.__class__}"
+                return f"{self} on {self.__class__}"
 
         def __hash__(self: EllipticCurve[F1]) -> int:
             # need to hash unique coords so do something like this:
@@ -299,10 +299,9 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
     Multiplication of a point on the curve by a positive integer is
     the implemented using the ladder.
 
-    One can work with the compressed curve, specifying only the x-coor-
-    dinate x-coordinate of a point in the form (x : y : 1). Moreover,
-    if only an x-coordinate is supplied when multiplying by n, then the
-    resulting point will also have its y coordinate set to None.
+    If the coefficients are in a finite field, then one can work with
+    the compressed curve by giving the constructor only one coordinate,
+    x; or, equivalently, by specifying y = None. See examples.
 
     Examples:
 
@@ -319,10 +318,12 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
 
         Standard basepoint:
 
-        >>> g = E(GF(9))
-        >>> x, y, _ = g.co
-        >>> print(x, abs(y))           # doctest: +ELLIPSIS
-        9 147816194475895447910205935684099868872646061346...
+        >>> x = GF(9)
+        >>> y = sqrt(E.f(x), p, p)
+        >>> y = -y if int(y) < 0 else y
+        >>> g = E(x, y)
+        >>> print(g)           # doctest: +ELLIPSIS
+        (9, 147816194475895447910205935684099868872646061346...
 
         The basepoint g generates a subgroup whose (prime) order is:
 
@@ -331,10 +332,19 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
         Let us check that g has the correct order:
 
         >>> #print(n*g)
-        [0: None: 0]
+        [0: 1: 0]
         >>> from numlib import addorder
         >>> #order(g, n) == n
         True
+
+        Working on the compressed curve:
+
+        >>> g = E(GF(9)) # same as g = E(GF(9), None)
+        >>> print(g)
+        (9, _)
+        >>> #print(n*g)
+        [0: 1: 0]
+
     """
     one = (a * b) ** 0
     zero = one * cast(F, 0)
@@ -371,11 +381,12 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
 
             if debug:
                 if not y:
-                    if hasattr(one, 'char'):
-                        y: F1 = sqrt(f_(x)*bb**-1, one.char, one.char)
+                    if hasattr(one, 'order'):
+                        if (f_(x)*bb**-1) ** ((one.order-1)//2) == -1:
+                            raise ValueError(f"if x = {x}, then f(x)/b = {f_(x)*bb**-1} is not a square")
                     else:
                         raise ValueError("please provide a y value")
-                if z != zero:
+                elif z != zero:
                     if (y / z) ** 2 != bb * f_(x / z):
                         raise ValueError(
                             (
@@ -390,31 +401,25 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
             self.co = (x, y, z)
 
         def __mul__(self, k: int) -> EllipticCurve[F1]:
-            """multiply using Montgomery ladder"""
-            def ladder(tup, k):
-                if k == 1:
-                    return (self.co[0], self.co[2])
-                elif n % 2 == 1:
-                    XX, ZZ = ladderstep(tup, n // 2)
-                    return (                        ,                       )
-                else:
-                    XX, ZZ = ladderstep(tup, n // 2)
-                    return (                        ,                       )
-
-            tup = ladder((self.co[0], self.co[2]), k)
-            return self.__class__(tup[0], None, tup[2])
+            pass
 
         def __str__(self: EllipticCurve[F1]) -> str:
             if self.co[2] == 0:
-                return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}]"
+                if self.co[1]:
+                    return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}]"
+                else:
+                    return f"[{self.co[0]}: 1: {self.co[2]}]"
             else:
-                return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]})"
+                if self.co[1]:
+                    return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]})"
+                else:
+                    return f"({self.co[0]/self.co[2]}, _)"
 
         def __repr__(self: EllipticCurve[F1]) -> str:
             if self.co[2] == 0:
-                return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}] on {self.__class__}"
+                return f"{self} on {self.__class__}"
             else:
-                return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]}) on {self.__class__}"
+                return f"{self} on {self.__class__}"
 
         def __hash__(self: EllipticCurve[F1]) -> int:
             # need to hash unique coords so do something like this:
