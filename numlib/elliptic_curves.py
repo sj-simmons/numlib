@@ -380,14 +380,14 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
             """projective coordinates [x: y: z]"""
 
             if debug:
-                if not y:
-                    if hasattr(one, 'order'):
-                        if (f_(x)*bb**-1) ** ((one.order-1)//2) == -1:
-                            raise ValueError(f"if x = {x}, then f(x)/b = {f_(x)*bb**-1} is not a square")
-                    else:
-                        raise ValueError("please provide a y value")
-                elif z != zero:
-                    if (y / z) ** 2 != bb * f_(x / z):
+                if z != zero:
+                    if y is None:
+                        if hasattr(one, 'order'):
+                            if (f_(x / z)*bb**-1) ** ((one.order-1)//2) == -1:
+                                raise ValueError(f"if x = {x}, then f(x)/b = {f_(x)*bb**-1} is not a square")
+                        else:
+                            raise ValueError("please provide a y value")
+                    elif bb * (y / z) ** 2 != f_(x / z):
                         raise ValueError(
                             (
                                 f"({x/z}, {y/z}) = [{x}: {y}: {z}] is not on {ypoly} = {f_}: "
@@ -400,15 +400,29 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
 
             self.co = (x, y, z)
 
-        def __mul__(self, k: int) -> EllipticCurve[F1]:
-            pass
+        def __mul__(self, n: int) -> EllipticCurve[F1]:
+            def ladder(tup, k):
+                if k == 1:
+                    return tup
+                elif k % 2 == 0:
+                    X, Z = ladder(tup, k // 2)
+                    return (
+                        (X - Z)**2 * (X + Z)**2,
+                        ((X + Z)**2 - (X - Z)**2) * ((X + Z)**2 + (a-2)/4*((X + Z)**2 - (X - Z)**2))
+                    )
+
+            x, z = ladder((self.co[0], self.co[2]), n)
+            return self.__class__(x, self.co[1], z)
+
+        def __rmul__(self, n: int) -> EllipticCurve[F1]:
+            return self.__mul__(n)
 
         def __str__(self: EllipticCurve[F1]) -> str:
             if self.co[2] == 0:
                 if self.co[1]:
                     return f"[{self.co[0]}: {self.co[1]}: {self.co[2]}]"
                 else:
-                    return f"[{self.co[0]}: 1: {self.co[2]}]"
+                    return f"[{self.co[0]}: {one}: {self.co[2]}]"
             else:
                 if self.co[1]:
                     return f"({self.co[0]/self.co[2]}, {self.co[1]/self.co[2]})"
@@ -429,7 +443,6 @@ def Montgomery(a: F, b: F, debug: bool = False) -> EllipticCurve[F]:
                 return hash((self.co[0] / self.co[2], self.co[1] / self.co[2]))
 
     return MontgomeryCurve
-
 
 EllCurve = Weierstrass
 
