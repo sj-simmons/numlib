@@ -39,11 +39,12 @@ by issuing the command  **pip -V** at your commandline.
 >>> print(GF)
 Z/7[t]/<-3+3t^2+t^3>
 >>> GF.order  # 7^3
-343
+(7, 3)
 ```
 Element of GF are (equivalence classes of) polynomials.
 The easiest way to define a particular such element is
 to use an indeterminant.
+```
 >>> t = GF()
 >>> 1 + 2*t**2
 1+2t^2 + <-3+3t^2+t^3>
@@ -60,8 +61,12 @@ units:
 If you want something in GF's prime field when using
 an indeterminant:
 ```pycon
->>> 3*t**0
-3 + <-3+3t^2+t^3>
+>>> 2*t**0  
+2 + <-3+3t^2+t^3>
+>>> # the line above is equivalent to
+>>> Zmod7 = Zmodp(7)
+>>> GF([Zmod7(2)])
+2 + <-3+3t^2+t^3>
 ```
 You can run through all non-zero elements of GF by
 taking powers of **t**; but this is faster:
@@ -100,13 +105,13 @@ finite <img alt="$\operatorname{GF}(7^3)$" src="svgs/183c0fcbf5555289982cc209850
 Counting the point at infinity, the total number of <img alt="$\operatorname{GF}(7^3)$" src="svgs/183c0fcbf5555289982cc209850085a7.svg" valign=-4.109589000000009px width="52.00929029999999pt" height="17.4904653pt"/>-rational
 points on this curve is 378:
 ```pycon
->>> len(list(nl.finite(E)))
+>>> len(list(nl.affine(E)))
 377
 ```
-Warning: the last commands can take essentially forever for large curves, which is
-comparable to saying that one gets more encryption bang for one's buck by replacing
-&mdash; when implementing crypto-systems  &mdash; a finite field with an elliptic
-curve over a finite field.
+Warning: the last command can take essentially forever for large curves even if the
+coefficients lie in field of somewhat manageable size &mdash; which is to say that,
+when implementing crypto-systems, one gets more encryption bang for one's buck by
+replacing a finite field with an elliptic curve over a finite field.
 
 ## Basic examples
 
@@ -115,7 +120,7 @@ First, numlib provides various number theoretic utilities that may prove useful.
 >>> from numlib import gcd, xgcd
 >>> gcd(143, 2662)  # 11 since 143 = 11*13 and 2662 = 2*11^3
 >>> xgcd(143, 2662)  # (11, -93, 5) since 11 = -93 * 143 + 5 * 2662
->>> -93 * 143 + 5 * 2662  # 11
+>>> -93 * 143 + 5 * 2662  #  = 11
 ```
 Peruse all available utilities and see more examples by issuing the command
 **pydoc3 numlib.utils** at your commandline or by typing, in the interpreter,
