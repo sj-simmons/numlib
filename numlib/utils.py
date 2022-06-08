@@ -9,7 +9,7 @@ import decimal
 import functools
 import operator
 from itertools import combinations, cycle, product, tee
-from typing import List, Tuple, cast, TypeVar, Optional, Any, Set, Generator, overload, Union, Iterable
+from typing import cast, TypeVar, Optional, Any, Generator, overload, Iterable
 from polylib.polynomial import FPolynomial, Ring, Field
 
 __author__ = "Scott Simmons"
@@ -46,12 +46,14 @@ F = TypeVar("F", bound=Field)
 
 #Don't do this; can't use generic types in TypeVar's
 #Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]')
+#Euclidean = TypeVar('Euclidean', int, 'FPolynomial[F]') # type: ignore[valid-type]
 
 @overload
 def gcd(a: int, b: int) -> int: ...
 @overload
 def gcd(a: FPolynomial[F], b: FPolynomial[F]) -> FPolynomial[F]: ...
-def gcd(a, b):
+def gcd(a: Any, b: Any) -> Any:
+#def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
     """Return a greatest common divisor of a and b.
 
     If the arguments are ints, this returns either the usual, positive
@@ -106,12 +108,11 @@ def gcd(a, b):
 
     return b if a % b == 0 else gcd(b, a % b)
 
-
 @overload
 def lcm(a: int, b: int) -> int: ...
 @overload
 def lcm(a: FPolynomial[F], b: FPolynomial[F]) -> FPolynomial[F]: ...
-def lcm(a, b):
+def lcm(a: Any, b: Any) -> Any:
     """Return a least common multiple of a and b.
 
     Examples:
@@ -127,14 +128,11 @@ def lcm(a, b):
     """
     return (a * b) // gcd(a, b)
 
-
 @overload
-def xgcd(a: int, b: int) -> Tuple[int, ...]: ...
-
+def xgcd(a: int, b: int) -> tuple[int, ...]: ...
 @overload
-def xgcd(a: FPolynomial[F], b: FPolynomial[F]) -> Tuple[FPolynomial[F], ...]: ...
-
-def xgcd(a, b):
+def xgcd(a: FPolynomial[F], b: FPolynomial[F]) -> tuple[FPolynomial[F], ...]: ...
+def xgcd(a: Any, b: Any) -> Any:
     """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = s*a + t*b.
 
     This works as expected for ints, but also with polynomials defined
@@ -180,7 +178,7 @@ def xgcd(a, b):
         if b == 0:
             return (a,s0,t0)
 
-def sieve(n: int = 1000000) -> Tuple[int, ...]:
+def sieve(n: int = 1000000) -> tuple[int, ...]:
     """Return list of primes <= n.
 
     Uses Sieve of Eratosthenes.
@@ -251,7 +249,7 @@ def isprime(n: int) -> bool:
 def isprimeF(n: int, b: int) -> bool:
     """True if n is prime or a Fermat pseudoprime to base b."""
 
-    return cast(int, pow(b, n - 1, n)) == 1
+    return pow(b, n - 1, n) == 1
 
 
 def isprimeE(n: int, b: int) -> bool:
@@ -291,7 +289,7 @@ def factor_(n: int) -> int:
     return factorPR(n)
 
 
-def factor(n: int) -> List[int]:
+def factor(n: int) -> list[int]:
     """Return, with fair likelihood of success, the prime factors of n.
 
     Examples:
@@ -481,14 +479,14 @@ def divisors_(n: int) -> Generator[int, None, None]:
             yield functools.reduce(operator.mul, fact, 1)
 
 
-def divisors(n: int) -> List[int]:
+def divisors(n: int) -> list[int]:
     """Return sorted, increasing list of divisors > 1."""
 
     return sorted(list(divisors_(n)))
 
 
-#def addorder_(element: Ring[Any], possible_orders: List[int]) -> int:
-def addorder_(element: Ring, possible_orders: List[int]) -> int:
+#def addorder_(element: Ring[Any], possible_orders: list[int]) -> int:
+def addorder_(element: Ring, possible_orders: list[int]) -> int:
     """Helper for addorder that accepts a list of possible orders.
 
     Args:
@@ -595,8 +593,8 @@ def addorder(element: Ring, exponent: Optional[int] = None) -> int:
         return order
 
 
-#def mulorder_(element: Ring[Any], possible_orders: List[int]) -> int:
-def mulorder_(element: Ring, possible_orders: List[int]) -> int:
+#def mulorder_(element: Ring[Any], possible_orders: list[int]) -> int:
+def mulorder_(element: Ring, possible_orders: list[int]) -> int:
     """Helper for mulorder that accepts a list of possible orders.
 
     Args:
@@ -707,8 +705,8 @@ def mulorder(element: Ring, exponent: Optional[int] = None) -> int:
         return order
 
 
-#def iproduct(*iterables: Iterable, repeat: int = 1) -> Generator[Tuple[Any, ...], None, None]:
-def iproduct(*iterables: Any, repeat: int = 1) -> Generator[Tuple[Any, ...], None, None]:
+#def iproduct(*iterables: Iterable, repeat: int = 1) -> Generator[tuple[Any, ...], None, None]:
+def iproduct(*iterables: Any, repeat: int = 1) -> Generator[tuple[Any, ...], None, None]:
     """Cartesian product of large or infinite iterables (per MarkCBell)
 
     Examples:
@@ -728,8 +726,8 @@ def iproduct(*iterables: Any, repeat: int = 1) -> Generator[Tuple[Any, ...], Non
         for item in row
     ]
     N = len(iterables_)
-    saved: List[List[Any]] = [[] for _ in range(N)]  # All the items we've seen.
-    exhausted: Set[int] = set() # Set of indices of iterables that're exhausted.
+    saved: list[list[Any]] = [[] for _ in range(N)]  # All the items we've seen.
+    exhausted: set[int] = set() # Set of indices of iterables that're exhausted.
     for i in cycle(range(N)):
         if i in exhausted:  # Just to avoid repeatedly hitting that exception.
             continue
