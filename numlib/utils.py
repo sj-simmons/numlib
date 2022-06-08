@@ -46,12 +46,14 @@ F = TypeVar("F", bound=Field)
 
 #Don't do this; can't use generic types in TypeVar's
 #Euclidean = TypeVar('Euclidean', int, 'FPolynomial[Field]')
+#Euclidean = TypeVar('Euclidean', int, 'FPolynomial[F]') # type: ignore[valid-type]
 
 @overload
 def gcd(a: int, b: int) -> int: ...
 @overload
 def gcd(a: FPolynomial[F], b: FPolynomial[F]) -> FPolynomial[F]: ...
-def gcd(a, b):
+def gcd(a: Any, b: Any) -> Any:
+#def gcd(a: Euclidean, b: Euclidean) -> Euclidean:
     """Return a greatest common divisor of a and b.
 
     If the arguments are ints, this returns either the usual, positive
@@ -111,7 +113,7 @@ def gcd(a, b):
 def lcm(a: int, b: int) -> int: ...
 @overload
 def lcm(a: FPolynomial[F], b: FPolynomial[F]) -> FPolynomial[F]: ...
-def lcm(a, b):
+def lcm(a: Any, b: Any) -> Any:
     """Return a least common multiple of a and b.
 
     Examples:
@@ -134,7 +136,7 @@ def xgcd(a: int, b: int) -> Tuple[int, ...]: ...
 @overload
 def xgcd(a: FPolynomial[F], b: FPolynomial[F]) -> Tuple[FPolynomial[F], ...]: ...
 
-def xgcd(a, b):
+def xgcd(a: Any, b: Any) -> Any:
     """Return tuple (gcd(a,b), s, t) satisfying gcd(a,b) = s*a + t*b.
 
     This works as expected for ints, but also with polynomials defined
@@ -251,7 +253,7 @@ def isprime(n: int) -> bool:
 def isprimeF(n: int, b: int) -> bool:
     """True if n is prime or a Fermat pseudoprime to base b."""
 
-    return cast(int, pow(b, n - 1, n)) == 1
+    return pow(b, n - 1, n) == 1
 
 
 def isprimeE(n: int, b: int) -> bool:
