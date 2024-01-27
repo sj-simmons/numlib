@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 
+from mypyc.build import mypycify
+
 def readme():
   with open('README.rst', 'r') as fh:
     return fh.read()
@@ -13,13 +15,17 @@ setup(
   #},
   name='numlib',
   url='https://github.com/sj-simmons/numlib',
-  download_url='https://github.com/sj-simmons/numlib/archive/v0.2.tar.gz',
+  download_url='https://github.com/sj-simmons/numlib/archive/v0.3.tar.gz',
   author='Scott Simmons',
   author_email='ssimmons@drury.edu',
   packages=find_packages(),
+  #ext_modules=mypycify([
+  #    'numlib/__init__.py',
+  #    'numlib/modular_ints.py',
+  #])
   python_requires='>=3.6',
   install_requires=[],
-  version="0.2",
+  version="0.3",
   license='Apache 2.0',
   description='basic number theory tools',
   long_description=readme(),

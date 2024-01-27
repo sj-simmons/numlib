@@ -13,9 +13,9 @@ from typing import cast, TypeVar, Optional, Any, Generator, overload, Iterable
 from polylib.polynomial import FPolynomial, Ring, Field
 
 __author__ = "Scott Simmons"
-__version__ = "0.2"
+__version__ = "0.3"
 __status__ = "Development"
-__date__ = "03/24/22"
+__date__ = "01/27/24"
 __copyright__ = """
   Copyright 2014-2021 Scott Simmons
 
@@ -292,6 +292,8 @@ def factor_(n: int) -> int:
 def factor(n: int) -> list[int]:
     """Return, with fair likelihood of success, the prime factors of n.
 
+    The factors are returned in increasing order.
+
     Examples:
 
         >>> factor(2017*2027*12353948231)  # product of primes
@@ -311,6 +313,25 @@ def factor(n: int) -> list[int]:
         facts = factor(fact) + factor(n // fact)
     facts.sort()
     return facts
+
+
+def factor2(n: int) -> list[tuple(int, int)]:
+    """Return, with fair likelihood of success, the prime factors of n.
+
+    The factors are returned in the form [(p_1, e_1), (p_2, e_2), ...]
+    where n = p_1 ^ e_1 p_2 ^ e_2 ... and the p_i are distinct and in
+    increasing order.
+
+    Examples:
+
+        >>> factor2(2017*2027*12353948231)
+        [(2017, 1), (2027, 1), (12353948231, 1)]
+        >>> factor2(2017**4*(2027*12353948231)**2)
+        [(2017, 4), (2027, 2), (12353948231, 2)]
+    """
+
+    facts = factor(n)
+    return list((item, facts.count(item)) for item in set(facts))
 
 
 def factorPR(n: int) -> int:

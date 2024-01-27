@@ -1,12 +1,12 @@
-from .utils import gcd, lcm, xgcd, sieve, leastdivisor, istrueprime, isprime, factor, factorPR, truephi, phi, truemu, mu, divisors, addorder_, addorder, mulorder_, mulorder, serialize, unserialize, iproduct
+from .utils import gcd, lcm, xgcd, sieve, leastdivisor, istrueprime, isprime, factor, factorPR, truephi, phi, truemu, mu, divisors, addorder_, addorder, mulorder_, mulorder, serialize, unserialize, iproduct, factor2
 from .quotient_rings import Zmod, Zmodp, Pmod, FPmod, GaloisField, ZMod, ZModP, GF_ZModP, rootsymb, sqrt
 from .elliptic_curves import EllipticCurve, EllCurve, Weierstrass, Montgomery, affine, affine2, frobenious
 from .curves import Curve25519, Wei25519
 
 __author__ = 'Scott Simmons'
-__version__ = "0.2"
+__version__ = "0.3"
 __status__ = "Development"
-__date__ = "03/24/22"
+__date__ = "01/27/24"
 __copyright__ = """
   Copyright 2014-2021 Scott Simmons
 
