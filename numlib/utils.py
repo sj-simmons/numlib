@@ -13,7 +13,7 @@ from typing import cast, TypeVar, Optional, Any, Generator, overload, Iterable
 from polylib.polynomial import FPolynomial, Ring, Field
 
 __author__ = "Scott Simmons"
-__version__ = "0.3"
+__version__ = "0.3.1"
 __status__ = "Development"
 __date__ = "01/27/24"
 __copyright__ = """

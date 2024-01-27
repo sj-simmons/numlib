@@ -5,7 +5,7 @@ from polylib.polynomial import Field, Polynomial, FPolynomial
 from numlib.quotient_rings import ZModP, GF_ZModP, sqrt
 
 __author__ = "Scott Simmons"
-__version__ = "0.3"
+__version__ = "0.3.1"
 __status__ = "Development"
 __date__ = "01/27/24"
 __copyright__ = """
