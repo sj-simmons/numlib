@@ -16,18 +16,13 @@ From your command line:
 ```shell
 pip install numlib --user
 ```
-or, for the latest development version:
-```shell
-pip install git+https://github.com/sj-simmons/numlib.git --user
-```
-
-This library depends heavily on another Python library,
-[polylib](https://github.com/sj-simmons/polylib),
-which can be installed with **pip install polylib --user**.
 
 Note: for your Python installation, you may need to type **pip** instead of **pip3**
 in the commands above. You can check whether **pip** points to its Python3 version
 by issuing the command  **pip -V** at your commandline.
+
+This library depends heavily on another Python library,
+[polylib](https://github.com/sj-simmons/polylib).
 
 ## Quick start
 

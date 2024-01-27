@@ -1,13 +1,11 @@
 numlib
 ======
 
-Tools for number theory.
+Tools for number theory in pure Python.
 
 ============
 Installation
 ============
-
-First, install `polylib <https://pypi.org/project/polylib/>`_ and then
 
 .. code-block::
 
@@ -24,6 +22,7 @@ To upgrade to the latest version:
 .. code-block::
 
     pip3 install -U numlib --user
+
 
 -----
 Notes
